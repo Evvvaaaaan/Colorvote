@@ -24,13 +24,21 @@ function App() {
       const dbVote = await checkTodayVoteExists();
       if (dbVote) {
         setVote(dbVote);
-        localStorage.setItem('cv_vote', JSON.stringify(dbVote));
+        try {
+          localStorage.setItem('cv_vote', JSON.stringify(dbVote));
+        } catch (e) {
+          console.warn('localStorage setItem failed (incognito/private mode):', e);
+        }
         if (page === 'vote') {
           navigate('result');
         }
       } else {
         setVote(null);
-        localStorage.removeItem('cv_vote');
+        try {
+          localStorage.removeItem('cv_vote');
+        } catch (e) {
+          console.warn('localStorage removeItem failed:', e);
+        }
         if (page === 'result') {
           navigate('vote');
         }
@@ -56,7 +64,11 @@ function App() {
       // 2. Save locally if DB insert completes successfully
       const v = { colorId, regionId, ageGroup, ts: Date.now() };
       setVote(v);
-      localStorage.setItem('cv_vote', JSON.stringify(v));
+      try {
+        localStorage.setItem('cv_vote', JSON.stringify(v));
+      } catch (e) {
+        console.warn('localStorage setItem failed (incognito/private mode):', e);
+      }
       navigate('result');
       return { success: true };
     } catch (err) {
@@ -68,7 +80,11 @@ function App() {
 
   function handleRevote() {
     setVote(null);
-    localStorage.removeItem('cv_vote');
+    try {
+      localStorage.removeItem('cv_vote');
+    } catch (e) {
+      console.warn('localStorage removeItem failed:', e);
+    }
     navigate('vote');
   }
 
