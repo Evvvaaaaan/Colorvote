@@ -114,24 +114,15 @@ from public.votes v
 join segment_totals s on v.region = s.region and v.age_group = s.age_group
 group by v.region, v.age_group, v.color_id, s.total_count;
 
--- View 4: stats_trending (Live Trending momentum: compares a color's share of votes 
---          in the last 1 hour against its share of votes over the last 24 hours)
+-- View 4: stats_trending (Live Trending momentum: measures a color's concentration 
+--          by calculating the percentage of its 24h votes that were cast in the last 1 hour)
 --   hour_votes = votes in the last 1 hour
---   gain_pct   = (share_1h - share_24h) * 100 (percentage point difference)
---                This prevents crazy 2300% spikes when overall vote volume is low.
+--   gain_pct   = (votes_1h / votes_24h) * 100
+--                This caps the maximum trending rate at 100% and displays intuitive stats 
+--                even with small amounts of seed/test data.
 create or replace view public.stats_trending
 with (security_invoker = on) as
-with total_1h as (
-  select count(*)::numeric as total_votes_1h
-  from public.votes
-  where created_at >= now() - interval '1 hour'
-),
-total_24h as (
-  select count(*)::numeric as total_votes_24h
-  from public.votes
-  where created_at >= now() - interval '24 hours'
-),
-recent_1h as (
+with recent_1h as (
   select color_id, count(*) as votes_1h
   from public.votes
   where created_at >= now() - interval '1 hour'
@@ -148,10 +139,7 @@ select
   coalesce(r.votes_1h, 0) as hour_votes,
   round(
     coalesce(
-      (
-        (coalesce(r.votes_1h, 0)::numeric / nullif((select total_votes_1h from total_1h), 0) * 100) - 
-        (coalesce(y.votes_24h, 0)::numeric / nullif((select total_votes_24h from total_24h), 0) * 100)
-      ), 0
+      (coalesce(r.votes_1h, 0)::numeric / nullif(coalesce(y.votes_24h, 0), 0) * 100), 0
     ), 1
   ) as gain_pct
 from public.colors c
