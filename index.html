@@ -7,23 +7,15 @@
   <meta name="description" content="대한민국 사람들이 좋아하는 색을 투표로 모아 지역·연령대별 색 선호 트렌드를 실시간으로 보여주는 데이터 시각화 프로젝트." />
 
   <!--
-    Google Search Console 소유권 인증 (HTML 태그 방식)
-    Search Console > 속성 추가 > URL 접두어 > 'HTML 태그'에서 받은
-    content 값으로 G_SITE_VERIFICATION_CODE 를 교체하세요.
+    Google Search Console 소유권 인증 (Vite 환경 변수 사용)
+    환경 변수 VITE_GOOGLE_VERIFICATION_ID 에 구글 서치콘솔 content 값을 지정해 주세요.
   -->
-  <meta name="google-site-verification" content="G_SITE_VERIFICATION_CODE" />
+  <meta name="google-site-verification" content="%VITE_GOOGLE_VERIFICATION_ID%" />
 
   <!--
-    Google Analytics 4 — GA4 측정 ID(G-XXXXXXXXXX)로 G-XXXXXXXXXX 두 곳을 교체하세요.
-    (페이지뷰는 SPA 화면 전환까지 src/lib/analytics.js 에서 전송합니다.)
+    Google Analytics 4는 환경 변수 VITE_GA_TRACKING_ID 가 설정되면
+    src/lib/analytics.js 에서 스크립트를 동적으로 로딩하여 작동합니다.
   -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){ dataLayer.push(arguments); }
-    gtag('js', new Date());
-    gtag('config', 'G-XXXXXXXXXX', { send_page_view: false });
-  </script>
 
   <!--
     Google AdSense — 승인 신청 시 아래 한 줄의 주석을 풀고
