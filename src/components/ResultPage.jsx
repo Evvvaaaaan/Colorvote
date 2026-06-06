@@ -165,23 +165,25 @@ function ResultPage({ vote, color, region, onRevote }) {
               colorvote
             </span>
 
-            {/* Frosted pill badge (Top-right corner) */}
+            {/* Pill badge (Top-right corner) */}
             <div style={{
               position: 'absolute',
               top: '16px',
               right: '24px',
-              background: 'rgba(255,255,255,0.12)',
-              border: '0.5px solid rgba(255,255,255,0.2)',
+              background: 'rgba(255,255,255,0.18)',
+              border: '0.5px solid rgba(255,255,255,0.3)',
               borderRadius: '999px',
-              padding: '4px 12px',
+              padding: '5px 12px',
               fontSize: '11px',
-              fontWeight: 500,
-              color: 'rgba(255,255,255,0.7)',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
+              fontWeight: 600,
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               whiteSpace: 'nowrap',
+              wordBreak: 'keep-all',
             }}>
-              {vote.ageGroup} · {region ? region.short : '전국'}
+              {region ? region.short : '전국'} - {vote.ageGroup}
             </div>
 
             {/* Centered chosen color circle (140x140px) */}
