@@ -61,7 +61,7 @@ function Ticker() {
     return () => clearInterval(interval);
   }, [newsList]);
 
-  // 연결됐지만 아직 투표 데이터가 없을 때
+  // 연결됐지만 아직 선택 데이터가 없을 때
   if (newsList.length === 0) {
     return (
       <div style={{
@@ -80,7 +80,7 @@ function Ticker() {
           fontFamily: 'var(--font-body)',
           letterSpacing: '-0.2px',
         }}>
-          아직 투표 데이터가 없습니다
+          아직 선택 데이터가 없습니다
         </div>
       </div>
     );
@@ -155,7 +155,7 @@ function Ticker() {
           {isLive ? (
             <>
               방금 <strong style={{ color: 'var(--ink)', fontWeight: 600 }}>{region?.name || '지역'}</strong>의{' '}
-              <strong style={{ color: 'var(--ink)', fontWeight: 600 }}>{currentNews.age}</strong> 투표자가{' '}
+              <strong style={{ color: 'var(--ink)', fontWeight: 600 }}>{currentNews.age}</strong> 참여자가{' '}
               <span style={{ color: currentNews.colorHex, fontWeight: 600 }}>{currentNews.colorName}</span>를 선택하셨습니다!
             </>
           ) : (

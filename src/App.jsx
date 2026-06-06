@@ -74,7 +74,7 @@ function App() {
       return { success: true };
     } catch (err) {
       console.error('Vote submission failed:', err);
-      alert(err.message || '투표 제출 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+      alert(err.message || '선택 제출 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
       return { success: false, error: err.message };
     }
   }

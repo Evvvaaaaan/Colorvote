@@ -1,7 +1,7 @@
 function NavBar({ currentPage, onNavigate, hasVoted }) {
   const tabs = [
-    { id: 'vote', label: '투표' },
-    { id: 'result', label: '결과' },
+    { id: 'vote', label: '선택' },
+    { id: 'result', label: '선택 결과' },
     { id: 'map', label: '지도' },
     { id: 'stats', label: '통계' },
   ];

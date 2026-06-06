@@ -47,7 +47,7 @@ function SectionTitle({ children, onClick }) {
 }
 
 // 데이터 없음 공지
-function NoData({ label = '아직 투표 데이터가 없습니다' }) {
+function NoData({ label = '아직 선택 데이터가 없습니다' }) {
   return (
     <div style={{
       padding: '32px 0',

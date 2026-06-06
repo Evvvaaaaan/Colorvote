@@ -85,7 +85,7 @@ function AdminPage({ onNavigate }) {
                 gap: '4px'
               }}
             >
-              ← 투표하러 가기
+              ← 선택하러 가기
             </button>
             <h1 className="typo-hero" style={{ margin: 0, fontWeight: 700, color: '#ffffff' }}>
               관리자 대시보드
@@ -128,7 +128,7 @@ function AdminPage({ onNavigate }) {
             padding: '24px',
           }}>
             <div className="typo-caption-strong" style={{ color: 'rgba(255, 255, 255, 0.4)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
-              누적 총 투표수
+              누적 총 선택수
             </div>
             <div style={{ fontSize: '36px', fontWeight: 700, color: 'var(--primary)' }}>
               {loading ? '...' : totalCount.toLocaleString()}표
@@ -159,7 +159,7 @@ function AdminPage({ onNavigate }) {
         }}>
           <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
             <h2 style={{ fontSize: '18px', fontWeight: 600, margin: 0, color: '#ffffff' }}>
-              실시간 투표 로그 (최근 200건)
+              실시간 선택 로그 (최근 200건)
             </h2>
           </div>
 
@@ -169,7 +169,7 @@ function AdminPage({ onNavigate }) {
             </div>
           ) : votes.length === 0 ? (
             <div style={{ padding: '80px 0', textAlign: 'center', color: 'rgba(255, 255, 255, 0.4)', fontSize: '15px' }}>
-              등록된 투표 데이터가 없습니다.
+              등록된 선택 데이터가 없습니다.
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>

@@ -33,8 +33,8 @@ function initGA() {
 }
 
 const PAGE_TITLES = {
-  vote: '투표',
-  result: '결과',
+  vote: '선택',
+  result: '선택 결과',
   map: '지역별 색상',
   stats: '색상 통계',
   about: '소개',

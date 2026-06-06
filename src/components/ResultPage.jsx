@@ -104,14 +104,14 @@ function ResultPage({ vote, color, region, onRevote }) {
             animation: 'pulse 2s infinite ease-in-out',
           }} />
           <p className="typo-body" style={{ color: 'var(--ink-muted-48)', marginBottom: 20 }}>
-            아직 투표하지 않았습니다
+            아직 선택하지 않았습니다
           </p>
           <button
             className="btn-primary"
             onClick={onRevote}
             style={{ fontWeight: 600 }}
           >
-            투표하러 가기
+            선택하러 가기
           </button>
         </div>
       </div>
@@ -346,7 +346,7 @@ function ResultPage({ vote, color, region, onRevote }) {
             }}
           >
             <p className="typo-caption-strong" style={{ color: 'var(--ink-muted-48)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '1px' }}>
-              전국 투표 수
+              전국 선택 수
             </p>
             <p className="typo-lead" style={{ color: 'var(--ink)', fontWeight: 700 }}>
               {totalVotes ? totalVotes.toLocaleString() + '표' : '—'}

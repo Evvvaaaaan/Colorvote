@@ -303,7 +303,7 @@ function VotePage({ onVote }) {
               fontWeight: 600,
             }}
           >
-            {submitting ? '집계 중...' : '투표하기'}
+            {submitting ? '집계 중...' : '선택하기'}
           </button>
         </div>
       </section>

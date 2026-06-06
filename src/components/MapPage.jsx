@@ -166,8 +166,8 @@ function MapPage() {
           <h1 className="typo-hero" style={{ fontWeight: 700 }}>지역별 색상</h1>
           <p className="typo-body" style={{ color: 'var(--ink-muted-48)', marginTop: 12 }}>
             {loading
-              ? '최신 투표 데이터를 분석 중...'
-              : (hasData ? '지역을 탭하여 실시간 선두 컬러와 세부 통계를 확인해 보세요' : '아직 투표 데이터가 없습니다')}
+              ? '최신 선택 데이터를 분석 중...'
+              : (hasData ? '지역을 탭하여 실시간 선두 컬러와 세부 통계를 확인해 보세요' : '아직 선택 데이터가 없습니다')}
           </p>
         </div>
       </section>
@@ -385,7 +385,7 @@ function MapPage() {
                   color: 'var(--ink-muted-48)',
                   fontSize: 14,
                 }}>
-                  아직 투표 데이터가 없습니다
+                  아직 선택 데이터가 없습니다
                 </div>
               ) : (
                 <>

@@ -176,7 +176,7 @@ export async function submitVote(legacyColorId, regionId, ageGroup) {
 
   if (error) {
     if (error.code === '23505') {
-      throw new Error('오늘은 이미 투표에 참여하셨습니다. 내일 다시 참여해 주세요.');
+      throw new Error('오늘은 이미 참여하셨습니다. 내일 다시 참여해 주세요.');
     }
     throw error;
   }
