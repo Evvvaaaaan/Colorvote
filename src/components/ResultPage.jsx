@@ -9,6 +9,7 @@ function ResultPage({ vote, color, region, onRevote }) {
   const [totalVotes, setTotalVotes] = useState(0);
   const [loadingDNA, setLoadingDNA] = useState(true);
   const [sharing, setSharing] = useState(false);
+  const [capturedImg, setCapturedImg] = useState(null);
   const cardRef = useRef(null);
 
   const handleShareImage = async () => {
@@ -23,6 +24,36 @@ function ResultPage({ vote, color, region, onRevote }) {
           borderRadius: '24px',
         }
       });
+
+      // Check if mobile device
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+      if (isMobile) {
+        try {
+          // Convert dataUrl to Blob and then File object for Web Share API
+          const blob = await (await fetch(dataUrl)).blob();
+          const file = new File([blob], `colorvote-dna-${color.name.replace(/\s+/g, '')}.png`, { type: 'image/png' });
+          
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: '나의 ColorVote 결과',
+              text: `나의 색상은 ${color.name}입니다!`,
+            });
+            setSharing(false);
+            return;
+          }
+        } catch (shareErr) {
+          console.warn('Web Share failed, falling back to overlay:', shareErr);
+        }
+
+        // Fallback: Show press-to-save overlay modal for mobile browsers
+        setCapturedImg(dataUrl);
+        setSharing(false);
+        return;
+      }
+
+      // Standard desktop download trigger
       const link = document.createElement('a');
       link.download = `colorvote-dna-${color.name.replace(/\s+/g, '')}.png`;
       link.href = dataUrl;
@@ -148,6 +179,7 @@ function ResultPage({ vote, color, region, onRevote }) {
               color: 'rgba(255,255,255,0.7)',
               backdropFilter: 'blur(8px)',
               WebkitBackdropFilter: 'blur(8px)',
+              whiteSpace: 'nowrap',
             }}>
               {vote.ageGroup} · {region ? region.short : '전국'}
             </div>
@@ -334,6 +366,70 @@ function ResultPage({ vote, color, region, onRevote }) {
           </button>
         </div>
       </section>
+
+      {/* ── Mobile Image Press-to-Save Modal Overlay ── */}
+      {capturedImg && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.85)',
+          zIndex: 9999,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+        }}>
+          <div style={{
+            color: '#ffffff',
+            fontSize: '16px',
+            fontWeight: 600,
+            marginBottom: '20px',
+            textAlign: 'center',
+            lineHeight: 1.5,
+            fontFamily: 'var(--font-body)',
+          }}>
+            이미지를 <span style={{ color: 'var(--primary)' }}>길게 꾹 누르면</span><br />
+            사진첩(갤러리)에 저장할 수 있습니다.
+          </div>
+          <img
+            src={capturedImg}
+            alt="ColorVote Result Card"
+            style={{
+              maxWidth: '100%',
+              maxHeight: '65vh',
+              borderRadius: '24px',
+              boxShadow: '0 12px 36px rgba(0,0,0,0.5)',
+              display: 'block',
+              marginBottom: '28px',
+              pointerEvents: 'auto',
+            }}
+          />
+          <button
+            onClick={() => setCapturedImg(null)}
+            style={{
+              width: '100%',
+              maxWidth: '180px',
+              height: '48px',
+              fontSize: '15px',
+              fontWeight: 600,
+              background: 'rgba(255,255,255,0.15)',
+              border: '1px solid rgba(255,255,255,0.3)',
+              color: '#ffffff',
+              borderRadius: '999px',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-body)',
+              transition: 'background 0.2s ease',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.25)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
+          >
+            닫기
+          </button>
+        </div>
+      )}
 
       <style>{`
         @keyframes pulse {
