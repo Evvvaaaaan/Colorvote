@@ -66,7 +66,7 @@ function VotePage({ onVote }) {
               pointerEvents: 'none',
             }} />
             <img
-              src="/apple_hero_vote_box.png"
+              src={`${import.meta.env.BASE_URL}apple_hero_vote_box.png`}
               alt="Color Vote Box"
               style={{
                 width: 200,
