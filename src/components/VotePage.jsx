@@ -4,7 +4,7 @@ import { CV_COLORS, CV_REGIONS, CV_AGE_GROUPS } from '../data';
 // 파랑 계열: 로열 블루(2)만 유지, 딥 네이비(1)·스카이 블루(3) 제외
 // 빨강 계열: 로즈(15)만 유지, 크림슨(14) 제외
 // 버건디(22) 제외
-const VOTE_COLORS = CV_COLORS.filter(c => ![1, 3, 14, 22].includes(c.id));
+const VOTE_COLORS = CV_COLORS;
 
 function VotePage({ onVote }) {
   const [selectedColor, setSelectedColor] = useState(null);

@@ -58,19 +58,19 @@ export const LEGACY_UUID_MAP = {
 
 const AGE_TOP5 = {
   '10대': [
-    { id: 16, pct: 41 }, { id: 8, pct: 23 }, { id: 18, pct: 18 }, { id: 10, pct: 12 }, { id: 17, pct: 8 },
+    { id: 7, pct: 41 }, { id: 4, pct: 23 }, { id: 1, pct: 18 }, { id: 3, pct: 12 }, { id: 5, pct: 8 },
   ],
   '20대': [
-    { id: 18, pct: 34 }, { id: 1, pct: 22 }, { id: 21, pct: 17 }, { id: 16, pct: 15 }, { id: 10, pct: 11 },
+    { id: 1, pct: 34 }, { id: 5, pct: 22 }, { id: 7, pct: 17 }, { id: 3, pct: 15 }, { id: 2, pct: 11 },
   ],
   '30대': [
-    { id: 1, pct: 31 }, { id: 18, pct: 26 }, { id: 10, pct: 19 }, { id: 11, pct: 14 }, { id: 3, pct: 10 },
+    { id: 5, pct: 31 }, { id: 7, pct: 26 }, { id: 3, pct: 19 }, { id: 2, pct: 14 }, { id: 6, pct: 10 },
   ],
   '40대': [
-    { id: 11, pct: 28 }, { id: 1, pct: 24 }, { id: 23, pct: 18 }, { id: 2, pct: 16 }, { id: 10, pct: 13 },
+    { id: 2, pct: 28 }, { id: 5, pct: 24 }, { id: 1, pct: 18 }, { id: 6, pct: 16 }, { id: 3, pct: 13 },
   ],
   '50대+': [
-    { id: 6, pct: 35 }, { id: 23, pct: 26 }, { id: 1, pct: 20 }, { id: 7, pct: 12 }, { id: 11, pct: 7 },
+    { id: 4, pct: 35 }, { id: 1, pct: 26 }, { id: 6, pct: 20 }, { id: 5, pct: 12 }, { id: 2, pct: 7 },
   ],
 };
 
@@ -109,11 +109,13 @@ export async function getColors(timeRange = '전체') {
       
     if (colorsError) throw colorsError;
 
+    // Filter to only legacy IDs 1 to 7
+    const filteredColorsData = colorsData.filter(c => c.legacy_id >= 1 && c.legacy_id <= 7);
+
     let voteCounts = {};
     if (timeRange === '전체') {
-      // Count per color via head-only exact counts (no row body transfer, no 1000-row cap)
       const countResults = await Promise.all(
-        colorsData.map(c =>
+        filteredColorsData.map(c =>
           supabase
             .from('votes')
             .select('*', { count: 'exact', head: true })
@@ -122,7 +124,7 @@ export async function getColors(timeRange = '전체') {
       );
       countResults.forEach((res, i) => {
         if (res.error) throw res.error;
-        voteCounts[colorsData[i].id] = res.count || 0;
+        voteCounts[filteredColorsData[i].id] = res.count || 0;
       });
     } else {
       const { data: rpcData, error: rpcError } = await supabase
@@ -134,14 +136,17 @@ export async function getColors(timeRange = '전체') {
       });
     }
 
-    return colorsData.map(c => ({
-      id: c.legacy_id,
-      name: c.name,
-      hex: c.hex,
-      personality: c.personality_type,
-      trait: c.trait,
-      votes: voteCounts[c.id] || 0
-    }));
+    return filteredColorsData.map(c => {
+      const rainbowColor = CV_COLORS.find(rc => rc.id === c.legacy_id);
+      return {
+        id: c.legacy_id,
+        name: rainbowColor ? rainbowColor.name : c.name,
+        hex: rainbowColor ? rainbowColor.hex : c.hex,
+        personality: rainbowColor ? rainbowColor.personality : c.personality_type,
+        trait: rainbowColor ? rainbowColor.trait : c.trait,
+        votes: voteCounts[c.id] || 0
+      };
+    });
   } catch (err) {
     console.error('Error fetching colors:', err);
     return [];
@@ -209,8 +214,18 @@ export async function getStatsByRegion() {
         .order('color_id')
     );
 
+    const filteredRegionStats = rawRegionStats.filter(s => {
+      const legacyId = getLegacyColorId(s.color_id);
+      return legacyId >= 1 && legacyId <= 7;
+    });
+
+    const filteredCombinedStats = rawCombinedStats.filter(s => {
+      const legacyId = getLegacyColorId(s.color_id);
+      return legacyId >= 1 && legacyId <= 7;
+    });
+
     const updatedRegions = CV_REGIONS.map(r => {
-      const stats = rawRegionStats.filter(s => s.region === r.id);
+      const stats = filteredRegionStats.filter(s => s.region === r.id);
       const total = stats.reduce((acc, curr) => acc + parseInt(curr.vote_count, 10), 0);
       // Region color = the single most-voted color in that region
       const topColorDb = stats.reduce(
@@ -227,7 +242,7 @@ export async function getStatsByRegion() {
     const updatedHeatmap = {};
 
     CV_REGIONS.forEach(r => {
-      const stats = rawRegionStats.filter(s => s.region === r.id);
+      const stats = filteredRegionStats.filter(s => s.region === r.id);
       const total = stats.reduce((acc, curr) => acc + parseInt(curr.vote_count, 10), 0);
       
       const topColors = stats
@@ -238,7 +253,7 @@ export async function getStatsByRegion() {
         .filter(tc => tc.id !== null)
         .slice(0, 3);
 
-      const regionCombined = rawCombinedStats.filter(s => s.region === r.id);
+      const regionCombined = filteredCombinedStats.filter(s => s.region === r.id);
       const regionAgeTotal = regionCombined.reduce((acc, curr) => acc + parseInt(curr.vote_count, 10), 0);
 
       const byAge = {};
@@ -295,7 +310,11 @@ export async function getStatsByAgeRange() {
 
     const formattedAgeStats = {};
     CV_AGE_GROUPS.forEach(ag => {
-      const ageRecords = rawAgeStats.filter(s => s.age_group === ag);
+      const ageRecords = rawAgeStats.filter(s => {
+        if (s.age_group !== ag) return false;
+        const legacyId = getLegacyColorId(s.color_id);
+        return legacyId >= 1 && legacyId <= 7;
+      });
       const top5 = ageRecords
         .slice(0, 5)
         .map(s => {
@@ -395,7 +414,7 @@ export async function getTrendingColors() {
         gainPct: Number.isFinite(gain) ? Math.round(gain) : 0,
         hourVotes: Number.isFinite(hours) ? hours : 0
       };
-    }).filter(t => t.colorId !== null);
+    }).filter(t => t.colorId >= 1 && t.colorId <= 7);
 
     return formatted;
   } catch (err) {
@@ -437,15 +456,19 @@ export async function getRecentVotes() {
       .limit(15);
 
     if (error) throw error;
-    return data.map(v => ({
-      id: v.id,
-      regionId: v.region,
-      age: v.age_group,
-      colorId: getLegacyColorId(v.color_id),
-      colorName: v.color_name,
-      colorHex: v.color_hex,
-      time: v.created_at
-    }));
+    return data.map(v => {
+      const legacyId = getLegacyColorId(v.color_id);
+      const rainbowColor = CV_COLORS.find(rc => rc.id === legacyId);
+      return {
+        id: v.id,
+        regionId: v.region,
+        age: v.age_group,
+        colorId: legacyId,
+        colorName: rainbowColor ? rainbowColor.name : v.color_name,
+        colorHex: rainbowColor ? rainbowColor.hex : v.color_hex,
+        time: v.created_at
+      };
+    }).filter(v => v.colorId >= 1 && v.colorId <= 7);
   } catch (err) {
     console.error('Error fetching recent votes:', err);
     return [];
@@ -502,6 +525,7 @@ export async function getAdminVotes() {
         age_group,
         created_at,
         fingerprint,
+        color_id,
         colors (
           name,
           hex
@@ -512,15 +536,20 @@ export async function getAdminVotes() {
 
     if (error) throw error;
     
-    return data.map(v => ({
-      id: v.id,
-      regionId: v.region,
-      age: v.age_group,
-      time: v.created_at,
-      fingerprint: v.fingerprint,
-      colorName: v.colors?.name || '알 수 없음',
-      colorHex: v.colors?.hex || '#888888'
-    }));
+    return data.map(v => {
+      const legacyId = getLegacyColorId(v.color_id);
+      const rainbowColor = CV_COLORS.find(rc => rc.id === legacyId);
+      return {
+        id: v.id,
+        regionId: v.region,
+        age: v.age_group,
+        time: v.created_at,
+        fingerprint: v.fingerprint,
+        colorName: rainbowColor ? rainbowColor.name : (v.colors?.name || '알 수 없음'),
+        colorHex: rainbowColor ? rainbowColor.hex : (v.colors?.hex || '#888888'),
+        colorId: legacyId
+      };
+    }).filter(v => v.colorId >= 1 && v.colorId <= 7);
   } catch (err) {
     console.error('Failed to fetch admin votes:', err);
     return [];
