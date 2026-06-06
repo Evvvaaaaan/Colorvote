@@ -1,17 +1,27 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 import { CV_COLORS, CV_REGIONS, CV_REGION_DETAIL, CV_HEATMAP, CV_TRENDING, CV_AGE_GROUPS } from '../data';
 
-// 1. Generate client fingerprint based on UserAgent + Screen details
+// 1. Stable per-browser client ID (random, persisted in localStorage).
+// Note: derived device fingerprints (userAgent/language/colorDepth) collide
+// across users on identical devices, which wrongly blocks non-voters. A random
+// per-browser ID keeps the "one vote per day per browser" rule without collisions.
 export async function getFingerprint() {
-  const navigatorInfo = window.navigator.userAgent + window.navigator.language + window.screen.colorDepth;
-  
-  // Simple SHA-256 equivalent hashing in browser js
-  const msgBuffer = new TextEncoder().encode(navigatorInfo);
-  const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  
-  return hashHex;
+  const KEY = 'cv_client_id';
+  let id = null;
+  try {
+    id = localStorage.getItem(KEY);
+  } catch { /* localStorage unavailable */ }
+
+  if (!id) {
+    id = (window.crypto && window.crypto.randomUUID)
+      ? window.crypto.randomUUID()
+      : `${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}${Math.random().toString(16).slice(2)}`;
+    try {
+      localStorage.setItem(KEY, id);
+    } catch { /* localStorage unavailable */ }
+  }
+
+  return id;
 }
 
 // 2. Map legacy integer color ID to Static Supabase UUID
@@ -441,3 +451,42 @@ export async function getRecentVotes() {
     return [];
   }
 }
+
+// Check if current device has voted today in Supabase
+export async function checkTodayVoteExists() {
+  if (!isSupabaseConfigured) return null;
+  try {
+    const fingerprint = await getFingerprint();
+    
+    // Calculate KST (UTC+9) today 00:00:00 equivalent in UTC
+    const kstOffset = 9 * 60 * 60 * 1000;
+    const todayKST = new Date(Date.now() + kstOffset);
+    todayKST.setUTCHours(0, 0, 0, 0);
+    const todayUtcIso = new Date(todayKST.getTime() - kstOffset).toISOString();
+
+    const { data, error } = await supabase
+      .from('votes')
+      .select('*')
+      .eq('fingerprint', fingerprint)
+      .gte('created_at', todayUtcIso)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (error) throw error;
+    
+    if (data && data.length > 0) {
+      const v = data[0];
+      return {
+        colorId: getLegacyColorId(v.color_id),
+        regionId: v.region,
+        ageGroup: v.age_group,
+        ts: new Date(v.created_at).getTime()
+      };
+    }
+    return null;
+  } catch (err) {
+    console.error('Error checking today vote:', err);
+    return null;
+  }
+}
+

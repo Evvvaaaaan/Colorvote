@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CV_getColor, CV_getRegion } from './data';
-import { submitVote } from './lib/supabaseService';
+import { submitVote, checkTodayVoteExists } from './lib/supabaseService';
+import { trackPageView } from './lib/analytics';
 import VotePage from './components/VotePage';
 import ResultPage from './components/ResultPage';
 import MapPage from './components/MapPage';
@@ -17,6 +18,26 @@ function App() {
     catch { return null; }
   });
   const [transitioning, setTransitioning] = useState(false);
+
+  useEffect(() => {
+    async function syncVoteStatus() {
+      const dbVote = await checkTodayVoteExists();
+      if (dbVote) {
+        setVote(dbVote);
+        localStorage.setItem('cv_vote', JSON.stringify(dbVote));
+        if (page === 'vote') {
+          navigate('result');
+        }
+      } else {
+        setVote(null);
+        localStorage.removeItem('cv_vote');
+        if (page === 'result') {
+          navigate('vote');
+        }
+      }
+    }
+    syncVoteStatus();
+  }, []);
 
   function navigate(newPage) {
     if (newPage === page) return;

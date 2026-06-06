@@ -300,13 +300,6 @@ function ResultPage({ vote, color, region, onRevote }) {
           <button className="btn-primary" style={{ width: '100%', maxWidth: 280, height: '52px', fontSize: '16px' }}>
             공유하기
           </button>
-          <button
-            className="btn-secondary-pill"
-            onClick={onRevote}
-            style={{ width: '100%', maxWidth: 280, height: '52px', fontSize: '16px' }}
-          >
-            다시 투표하기
-          </button>
         </div>
       </section>
 
