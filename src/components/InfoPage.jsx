@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 // 문의/개인정보처리방침에 노출되는 운영자 연락처. 필요 시 한 곳만 수정하면 됩니다.
 const CONTACT_EMAIL = 'vmfhrmfoald36@gmail.com';
@@ -195,12 +195,26 @@ const PAGES = {
   contact: { eyebrow: 'Contact', title: '문의',           Body: ContactBody },
 };
 
-function InfoPage({ page }) {
+function InfoPage({ page, onNavigate }) {
   useEffect(() => { window.scrollTo(0, 0); }, [page]);
+  const [clickCount, setClickCount] = useState(0);
 
   const meta = PAGES[page];
   if (!meta) return null;
   const { eyebrow, title, Body } = meta;
+
+  const handleTitleClick = () => {
+    if (page === 'about') {
+      const next = clickCount + 1;
+      setClickCount(next);
+      if (next >= 10) {
+        setClickCount(0);
+        if (typeof onNavigate === 'function') {
+          onNavigate('admin');
+        }
+      }
+    }
+  };
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--canvas)' }}>
@@ -215,7 +229,15 @@ function InfoPage({ page }) {
           }}>
             {eyebrow}
           </div>
-          <div className="typo-hero" style={{ fontWeight: 700 }}>
+          <div 
+            className="typo-hero" 
+            onClick={handleTitleClick}
+            style={{ 
+              fontWeight: 700, 
+              cursor: page === 'about' ? 'pointer' : 'default',
+              userSelect: 'none' 
+            }}
+          >
             {title}
           </div>
         </div>

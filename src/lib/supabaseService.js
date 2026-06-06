@@ -490,3 +490,57 @@ export async function checkTodayVoteExists() {
   }
 }
 
+// Fetch all votes for Admin Dashboard (limits to 200 rows with color joins)
+export async function getAdminVotes() {
+  if (!isSupabaseConfigured) return [];
+  try {
+    const { data, error } = await supabase
+      .from('votes')
+      .select(`
+        id,
+        region,
+        age_group,
+        created_at,
+        fingerprint,
+        colors (
+          name,
+          hex
+        )
+      `)
+      .order('created_at', { ascending: false })
+      .limit(200);
+
+    if (error) throw error;
+    
+    return data.map(v => ({
+      id: v.id,
+      regionId: v.region,
+      age: v.age_group,
+      time: v.created_at,
+      fingerprint: v.fingerprint,
+      colorName: v.colors?.name || '알 수 없음',
+      colorHex: v.colors?.hex || '#888888'
+    }));
+  } catch (err) {
+    console.error('Failed to fetch admin votes:', err);
+    return [];
+  }
+}
+
+// Fetch total global votes count
+export async function getTotalVoteCount() {
+  if (!isSupabaseConfigured) return 0;
+  try {
+    const { count, error } = await supabase
+      .from('votes')
+      .select('*', { count: 'exact', head: true });
+
+    if (error) throw error;
+    return count || 0;
+  } catch (err) {
+    console.error('Failed to count total votes:', err);
+    return 0;
+  }
+}
+
+
