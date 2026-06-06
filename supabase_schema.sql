@@ -114,16 +114,24 @@ from public.votes v
 join segment_totals s on v.region = s.region and v.age_group = s.age_group
 group by v.region, v.age_group, v.color_id, s.total_count;
 
--- View 4: stats_trending (Live momentum: how much hotter a color is right now
---          vs. its own average hourly pace over the last 24 hours)
+-- View 4: stats_trending (Live Trending momentum: compares a color's share of votes 
+--          in the last 1 hour against its share of votes over the last 24 hours)
 --   hour_votes = votes in the last 1 hour
---   gain_pct   = (votes_1h - avg_hourly_24h) / avg_hourly_24h * 100
---                > 0  → surging above its usual pace ("지금 뜨는 색")
---                = 0  → no 24h activity (nothing to compare against)
---                < 0  → cooling off (sinks to the bottom, excluded from top 3)
+--   gain_pct   = (share_1h - share_24h) * 100 (percentage point difference)
+--                This prevents crazy 2300% spikes when overall vote volume is low.
 create or replace view public.stats_trending
 with (security_invoker = on) as
-with recent_1h as (
+with total_1h as (
+  select count(*)::numeric as total_votes_1h
+  from public.votes
+  where created_at >= now() - interval '1 hour'
+),
+total_24h as (
+  select count(*)::numeric as total_votes_24h
+  from public.votes
+  where created_at >= now() - interval '24 hours'
+),
+recent_1h as (
   select color_id, count(*) as votes_1h
   from public.votes
   where created_at >= now() - interval '1 hour'
@@ -138,12 +146,14 @@ recent_24h as (
 select
   c.id as color_id,
   coalesce(r.votes_1h, 0) as hour_votes,
-  case
-    when coalesce(y.votes_24h, 0) = 0 then 0
-    else round(
-      (coalesce(r.votes_1h, 0)::numeric - (y.votes_24h::numeric / 24))
-      / (y.votes_24h::numeric / 24) * 100, 2)
-  end as gain_pct
+  round(
+    coalesce(
+      (
+        (coalesce(r.votes_1h, 0)::numeric / nullif((select total_votes_1h from total_1h), 0) * 100) - 
+        (coalesce(y.votes_24h, 0)::numeric / nullif((select total_votes_24h from total_24h), 0) * 100)
+      ), 0
+    ), 1
+  ) as gain_pct
 from public.colors c
 left join recent_1h r on c.id = r.color_id
 left join recent_24h y on c.id = y.color_id
