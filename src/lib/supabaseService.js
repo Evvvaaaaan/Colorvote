@@ -133,8 +133,8 @@ export async function getColors(timeRange = '전체') {
       votes: voteCounts[c.id] || 0
     }));
   } catch (err) {
-    console.error('Error fetching colors, using mockup:', err);
-    return CV_COLORS;
+    console.error('Error fetching colors:', err);
+    return [];
   }
 }
 
@@ -208,13 +208,9 @@ export async function getStatsByRegion() {
           !best || parseInt(curr.vote_count, 10) > parseInt(best.vote_count, 10) ? curr : best,
         null
       );
-      const topColorId = topColorDb ? getLegacyColorId(topColorDb.color_id) : r.topColorId;
+      const topColorId = topColorDb ? getLegacyColorId(topColorDb.color_id) : null;
 
-      return {
-        ...r,
-        topColorId,
-        votes: total > 0 ? total : r.votes
-      };
+      return { ...r, topColorId, votes: total };
     });
 
     const updatedDetail = {};
@@ -224,10 +220,13 @@ export async function getStatsByRegion() {
       const stats = rawRegionStats.filter(s => s.region === r.id);
       const total = stats.reduce((acc, curr) => acc + parseInt(curr.vote_count, 10), 0);
       
-      const topColors = stats.slice(0, 3).map(s => ({
-        id: getLegacyColorId(s.color_id),
-        pct: total > 0 ? Math.round((parseInt(s.vote_count, 10) / total) * 100) : 0
-      }));
+      const topColors = stats
+        .map(s => ({
+          id: getLegacyColorId(s.color_id),
+          pct: total > 0 ? Math.round((parseInt(s.vote_count, 10) / total) * 100) : 0
+        }))
+        .filter(tc => tc.id !== null)
+        .slice(0, 3);
 
       const regionCombined = rawCombinedStats.filter(s => s.region === r.id);
       const regionAgeTotal = regionCombined.reduce((acc, curr) => acc + parseInt(curr.vote_count, 10), 0);
@@ -239,26 +238,35 @@ export async function getStatsByRegion() {
         const ageStats = regionCombined.filter(s => s.age_group === ag);
         const ageTotal = ageStats.reduce((acc, curr) => acc + parseInt(curr.vote_count, 10), 0);
         
-        byAge[ag] = regionAgeTotal > 0 ? Math.round((ageTotal / regionAgeTotal) * 100) : (CV_REGION_DETAIL[r.id].byAge[ag] || 0);
+        byAge[ag] = regionAgeTotal > 0 ? Math.round((ageTotal / regionAgeTotal) * 100) : 0;
 
         const sortedAgeColors = [...ageStats].sort((a, b) => parseInt(b.vote_count, 10) - parseInt(a.vote_count, 10));
         const topAgeColorDb = sortedAgeColors[0];
-        regionHeatmap[ag] = topAgeColorDb ? getLegacyColorId(topAgeColorDb.color_id) : (CV_HEATMAP[r.id]?.[ag] || r.topColorId);
+        regionHeatmap[ag] = topAgeColorDb ? getLegacyColorId(topAgeColorDb.color_id) : null;
       });
 
-      updatedDetail[r.id] = {
-        topColors: topColors.length > 0 ? topColors : CV_REGION_DETAIL[r.id].topColors,
-        byAge: Object.keys(byAge).length > 0 ? byAge : CV_REGION_DETAIL[r.id].byAge,
-        total: total > 0 ? total : CV_REGION_DETAIL[r.id].total
-      };
-
+      updatedDetail[r.id] = { topColors, byAge, total };
       updatedHeatmap[r.id] = regionHeatmap;
     });
 
     return { regions: updatedRegions, detail: updatedDetail, heatmap: updatedHeatmap };
   } catch (err) {
-    console.error('Error fetching region stats, using mockups:', err);
-    return { regions: CV_REGIONS, detail: CV_REGION_DETAIL, heatmap: CV_HEATMAP };
+    console.error('Error fetching region stats:', err);
+    const emptyDetail = {};
+    const emptyHeatmap = {};
+    CV_REGIONS.forEach(r => {
+      emptyDetail[r.id] = {
+        topColors: [],
+        byAge: Object.fromEntries(CV_AGE_GROUPS.map(ag => [ag, 0])),
+        total: 0
+      };
+      emptyHeatmap[r.id] = Object.fromEntries(CV_AGE_GROUPS.map(ag => [ag, null]));
+    });
+    return {
+      regions: CV_REGIONS.map(r => ({ ...r, topColorId: null, votes: 0 })),
+      detail: emptyDetail,
+      heatmap: emptyHeatmap
+    };
   }
 }
 
@@ -278,18 +286,24 @@ export async function getStatsByAgeRange() {
     const formattedAgeStats = {};
     CV_AGE_GROUPS.forEach(ag => {
       const ageRecords = rawAgeStats.filter(s => s.age_group === ag);
-      const top5 = ageRecords.slice(0, 5).map(s => ({
-        id: getLegacyColorId(s.color_id),
-        pct: Math.round(parseFloat(s.pct))
-      }));
-      
-      formattedAgeStats[ag] = top5.length > 0 ? top5 : AGE_TOP5[ag];
+      const top5 = ageRecords
+        .slice(0, 5)
+        .map(s => {
+          const p = parseFloat(s.pct);
+          return {
+            id: getLegacyColorId(s.color_id),
+            pct: Number.isFinite(p) ? Math.round(p) : 0
+          };
+        })
+        .filter(s => s.id !== null);
+
+      formattedAgeStats[ag] = top5;
     });
 
     return formattedAgeStats;
   } catch (err) {
-    console.error('Error fetching age cohort rankings, using fallback:', err);
-    return AGE_TOP5;
+    console.error('Error fetching age cohort rankings:', err);
+    return {};
   }
 }
 
@@ -315,15 +329,17 @@ export async function getDNAStats(regionId, ageGroup, legacyColorId) {
 
     if (error) throw error;
     if (data) {
+      const pct = parseFloat(data.pct);
+      const votes = parseInt(data.vote_count, 10);
       return {
-        pct: parseFloat(data.pct),
-        votes: parseInt(data.vote_count, 10)
+        pct: Number.isFinite(pct) ? pct : 0,
+        votes: Number.isFinite(votes) ? votes : 0
       };
     }
     return { pct: 0, votes: 0 };
   } catch (err) {
-    console.error('Error fetching DNA stats, using mocks:', err);
-    return { pct: 15, votes: 200 };
+    console.error('Error fetching DNA stats:', err);
+    return { pct: 0, votes: 0 };
   }
 }
 
@@ -345,8 +361,7 @@ export async function getSingleColorVotes(legacyColorId) {
     return count || 0;
   } catch (err) {
     console.error('Error counting single color votes:', err);
-    const color = CV_COLORS.find(c => c.id === legacyColorId);
-    return color ? color.votes : 0;
+    return 0;
   }
 }
 
@@ -362,16 +377,20 @@ export async function getTrendingColors() {
 
     if (error) throw error;
     
-    const formatted = data.map(t => ({
-      colorId: getLegacyColorId(t.color_id),
-      gainPct: Math.round(parseFloat(t.gain_pct)),
-      hourVotes: parseInt(t.hour_votes, 10)
-    })).filter(t => t.colorId !== null);
+    const formatted = data.map(t => {
+      const gain = parseFloat(t.gain_pct);
+      const hours = parseInt(t.hour_votes, 10);
+      return {
+        colorId: getLegacyColorId(t.color_id),
+        gainPct: Number.isFinite(gain) ? Math.round(gain) : 0,
+        hourVotes: Number.isFinite(hours) ? hours : 0
+      };
+    }).filter(t => t.colorId !== null);
 
-    return formatted.length > 0 ? formatted : CV_TRENDING;
+    return formatted;
   } catch (err) {
-    console.error('Error fetching trending, fallback:', err);
-    return CV_TRENDING;
+    console.error('Error fetching trending:', err);
+    return [];
   }
 }
 
@@ -380,7 +399,7 @@ export function subscribeVotes(onNewVote) {
   if (!isSupabaseConfigured) return () => {};
 
   const channel = supabase
-    .channel('votes-realtime-channel')
+    .channel(`votes-realtime-${Math.random().toString(36).slice(2)}`)
     .on(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'votes' },
@@ -403,7 +422,9 @@ export async function getRecentVotes() {
   try {
     const { data, error } = await supabase
       .from('stats_recent_votes')
-      .select('*');
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(15);
 
     if (error) throw error;
     return data.map(v => ({
@@ -417,6 +438,6 @@ export async function getRecentVotes() {
     }));
   } catch (err) {
     console.error('Error fetching recent votes:', err);
-    return null;
+    return [];
   }
 }

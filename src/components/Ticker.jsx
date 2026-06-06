@@ -2,33 +2,15 @@ import { useState, useEffect } from 'react';
 import { CV_getColor, CV_getRegion } from '../data';
 import { getRecentVotes, subscribeVotes, getLegacyColorId } from '../lib/supabaseService';
 
-// Default static fallback messages
-const MOCK_TICKER_ITEMS = [
-  { regionId: 'seoul',    age: '20대', colorId: 1,  colorName: '딥 네이비',    colorHex: '#1B2A4A' },
-  { regionId: 'busan',    age: '30대', colorId: 21, colorName: '페리윙클',    colorHex: '#8192E6' },
-  { regionId: 'gwangju',  age: '10대', colorId: 16, colorName: '핫 핑크',      colorHex: '#FF6B9D' },
-  { regionId: 'gyeonggi', age: '20대', colorId: 18, colorName: '라벤더',       colorHex: '#9B5DE5' },
-  { regionId: 'daegu',    age: '30대', colorId: 14, colorName: '크림슨',       colorHex: '#C1121F' },
-  { regionId: 'incheon',  age: '20대', colorId: 18, colorName: '라벤더',       colorHex: '#9B5DE5' },
-  { regionId: 'jeju',     age: '20대', colorId: 8,  colorName: '민트',         colorHex: '#5ECFB0' },
-  { regionId: 'gangwon',  age: '50대+', colorId: 6,  colorName: '포레스트',     colorHex: '#2D6A4F' },
-  { regionId: 'chungbuk', age: '30대', colorId: 10, colorName: '골든',         colorHex: '#FFD166' },
-  { regionId: 'jeonnam',  age: '20대', colorId: 5,  colorName: '에메랄드',     colorHex: '#00A878' },
-  { regionId: 'ulsan',    age: '30대', colorId: 15, colorName: '로즈',         colorHex: '#E63946' },
-  { regionId: 'daejeon',  age: '20대', colorId: 8,  colorName: '민트',         colorHex: '#5ECFB0' },
-];
-
 function Ticker() {
-  const [newsList, setNewsList] = useState(MOCK_TICKER_ITEMS);
+  const [newsList, setNewsList] = useState([]);
   const [idx, setIdx] = useState(0);
   const [visible, setVisible] = useState(true);
 
-  // 1. Fetch initial recent votes
+  // 1. Fetch initial recent votes (real data only; hidden when none)
   useEffect(() => {
     getRecentVotes().then(dbNews => {
-      if (dbNews && dbNews.length > 0) {
-        setNewsList(dbNews);
-      }
+      if (dbNews) setNewsList(dbNews);
     });
   }, []);
 
@@ -78,6 +60,31 @@ function Ticker() {
     
     return () => clearInterval(interval);
   }, [newsList]);
+
+  // 연결됐지만 아직 투표 데이터가 없을 때
+  if (newsList.length === 0) {
+    return (
+      <div style={{
+        width: '100%',
+        background: 'var(--canvas-parchment)',
+        borderBottom: '1px solid var(--hairline)',
+        marginTop: '64px',
+        userSelect: 'none',
+      }}>
+        <div style={{
+          maxWidth: '980px',
+          margin: '0 auto',
+          padding: '10px 24px',
+          fontSize: '13px',
+          color: 'var(--ink-muted-48)',
+          fontFamily: 'var(--font-body)',
+          letterSpacing: '-0.2px',
+        }}>
+          아직 투표 데이터가 없습니다
+        </div>
+      </div>
+    );
+  }
 
   const currentNews = newsList[idx];
 

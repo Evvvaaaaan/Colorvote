@@ -5,8 +5,10 @@ import VotePage from './components/VotePage';
 import ResultPage from './components/ResultPage';
 import MapPage from './components/MapPage';
 import StatsPage from './components/StatsPage';
+import InfoPage from './components/InfoPage';
 import Ticker from './components/Ticker';
 import NavBar from './components/NavBar';
+import Footer from './components/Footer';
 
 function App() {
   const [page, setPage] = useState('vote');
@@ -71,7 +73,10 @@ function App() {
         {page === 'result' && <ResultPage vote={vote} color={color} region={region} onRevote={handleRevote} />}
         {page === 'map'    && <MapPage />}
         {page === 'stats'  && <StatsPage />}
+        {(page === 'about' || page === 'privacy' || page === 'contact') && <InfoPage page={page} />}
       </div>
+
+      <Footer onNavigate={navigate} />
     </div>
   );
 }

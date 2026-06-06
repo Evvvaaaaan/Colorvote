@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { CV_AGE_GROUPS, CV_REGION_DETAIL, CV_getColor, CV_getRegion } from '../data';
-import { getColors, subscribeVotes, getLegacyColorId, getStatsByAgeRange, getTrendingColors } from '../lib/supabaseService';
+import { CV_AGE_GROUPS, CV_getColor, CV_getRegion } from '../data';
+import { getColors, subscribeVotes, getLegacyColorId, getStatsByAgeRange, getTrendingColors, getStatsByRegion } from '../lib/supabaseService';
 
-// Which regions have notable % for a given color
-function getColorRegionalData(colorId) {
+// Which regions have notable % for a given color (sourced from live region detail)
+function getColorRegionalData(colorId, regionDetail) {
   const results = [];
-  for (const rid in CV_REGION_DETAIL) {
-    const entry = CV_REGION_DETAIL[rid].topColors.find(t => t.id === colorId);
+  for (const rid in regionDetail) {
+    const entry = regionDetail[rid].topColors.find(t => t.id === colorId);
     if (entry) results.push({ region: CV_getRegion(rid), pct: entry.pct });
   }
   return results.sort((a, b) => b.pct - a.pct).slice(0, 5);
@@ -46,6 +46,21 @@ function SectionTitle({ children, onClick }) {
   );
 }
 
+// 데이터 없음 공지
+function NoData({ label = '아직 투표 데이터가 없습니다' }) {
+  return (
+    <div style={{
+      padding: '32px 0',
+      textAlign: 'center',
+      color: 'var(--ink-muted-48)',
+      fontSize: '14px',
+      fontFamily: 'var(--font-body)',
+    }}>
+      {label}
+    </div>
+  );
+}
+
 function StatsPage() {
   const [timeRange, setTimeRange] = useState('전체');
   const [expandedColorId, setExpandedColorId] = useState(null);
@@ -57,7 +72,8 @@ function StatsPage() {
   // Dynamic state hooks for live DB integration
   const [colors, setColors] = useState([]);
   const [ageStats, setAgeStats] = useState(null);
-  const [trendingColors, setTrendingColors] = useState([]);
+  const [trendingColors, setTrendingColors] = useState(null);
+  const [regionDetail, setRegionDetail] = useState({});
   const [loading, setLoading] = useState(true);
 
   // 1. Fetch initial statistics and handle timeRange filter changes
@@ -72,14 +88,18 @@ function StatsPage() {
       });
   }, [timeRange]);
 
-  // 2. Fetch age statistics and trending lists on mount
+  // 2. Fetch age statistics, trending and region detail lists on mount
   useEffect(() => {
     getStatsByAgeRange().then(data => {
       if (data) setAgeStats(data);
     });
-    
+
     getTrendingColors().then(data => {
       if (data) setTrendingColors(data);
+    });
+
+    getStatsByRegion().then(data => {
+      if (data) setRegionDetail(data.detail);
     });
   }, []);
 
@@ -95,12 +115,15 @@ function StatsPage() {
           )
         );
 
-        // Re-fetch aggregate views to keep trending and age lists in sync
+        // Re-fetch aggregate views to keep trending, age and region lists in sync
         getStatsByAgeRange().then(data => {
           if (data) setAgeStats(data);
         });
         getTrendingColors().then(data => {
           if (data) setTrendingColors(data);
+        });
+        getStatsByRegion().then(data => {
+          if (data) setRegionDetail(data.detail);
         });
       }
     });
@@ -124,6 +147,13 @@ function StatsPage() {
   const sorted = [...colors].sort((a, b) => b.votes - a.votes);
   const top3 = sorted.slice(0, 3);
   const maxVotes = sorted[0] ? sorted[0].votes : 0;
+
+  // 빈 상태 판정 (연결됐는데 데이터가 없을 때 공지용)
+  const noColorData = !loading && totalVotes === 0;
+  const ageLoaded = ageStats !== null;
+  const hasAgeData = ageLoaded && CV_AGE_GROUPS.some(ag => ageStats[ag] && ageStats[ag].length > 0);
+  const trendingList = trendingColors || [];
+  const noTrending = trendingColors !== null && trendingList.length === 0;
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--canvas)' }}>
@@ -185,6 +215,7 @@ function StatsPage() {
       <div className="tile tile-parchment" style={{ paddingTop: '64px', paddingBottom: '64px', borderBottom: '1px solid var(--hairline)' }}>
         <div className="tile-content">
           <SectionTitle>전국 TOP 3</SectionTitle>
+          {noColorData ? <NoData /> : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
             {top3.map((color, i) => {
               const pct = totalVotes > 0 ? (color.votes / totalVotes * 100).toFixed(1) : '0.0';
@@ -232,6 +263,7 @@ function StatsPage() {
               );
             })}
           </div>
+          )}
         </div>
       </div>
 
@@ -242,11 +274,11 @@ function StatsPage() {
             색상별 선택률 {loading && <span style={{ fontSize: '12px', color: 'var(--primary)', marginLeft: '10px' }}>(로딩 중...)</span>}
           </SectionTitle>
 
-          {sorted.slice(0, 16).map(color => {
+          {noColorData ? <NoData /> : sorted.slice(0, 16).map(color => {
             const pct = totalVotes > 0 ? (color.votes / totalVotes * 100).toFixed(1) : '0.0';
             const barFill = (barsReady && maxVotes > 0) ? (color.votes / maxVotes * 100) : 0;
             const isOpen = expandedColorId === color.id;
-            const regData = isOpen ? getColorRegionalData(color.id) : [];
+            const regData = isOpen ? getColorRegionalData(color.id, regionDetail) : [];
             const isHov = hoveredRateId === color.id;
 
             return (
@@ -400,6 +432,8 @@ function StatsPage() {
             연령대별 1위
           </SectionTitle>
 
+          {ageLoaded && !hasAgeData ? <NoData /> : (
+          <>
           {/* Scroll strip */}
           <div style={{
             overflowX: 'auto',
@@ -485,6 +519,8 @@ function StatsPage() {
               })}
             </div>
           </div>
+          </>
+          )}
 
           {/* Expanded age ranking panel */}
           {expandedAge && ageStats && ageStats[expandedAge] && (
@@ -594,8 +630,9 @@ function StatsPage() {
             </span>
           </div>
 
+          {noTrending ? <NoData /> : (
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-            {trendingColors.slice(0, 3).map(t => {
+            {trendingList.slice(0, 3).map(t => {
               const c = CV_getColor(t.colorId);
               if (!c) return null;
               return (
@@ -656,12 +693,13 @@ function StatsPage() {
                     <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                       <path d="M5 8V2M2 5l3-3 3 3" stroke="var(--primary-on-dark)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
-                    +{t.gainPct}%
+                    {t.gainPct > 0 ? '+' : ''}{t.gainPct}%
                   </span>
                 </div>
               );
             })}
           </div>
+          )}
         </div>
       </div>
 

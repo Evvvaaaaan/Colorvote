@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CV_REGIONS, CV_REGION_DETAIL, CV_HEATMAP, CV_AGE_GROUPS, CV_getColor } from '../data';
+import { CV_REGIONS, CV_AGE_GROUPS, CV_getColor } from '../data';
 import { getStatsByRegion } from '../lib/supabaseService';
 
 /*
@@ -40,8 +40,8 @@ const METRO_PATHS = [
     d: "M102,394 L128,392 L130,414 L104,416 Z" },
   { id: "daegu",
     d: "M264,314 L294,312 L296,336 L266,338 Z" },
-  { id: "ulsan",
-    d: "M330,310 L354,308 L356,332 L332,334 Z" },
+  { id: "pohang",
+    d: "M330,280 L354,278 L356,302 L332,304 Z" },
   { id: "busan",
     d: "M302,400 L336,395 L340,420 L322,428 L300,422 Z" },
 ];
@@ -61,22 +61,30 @@ const LABELS = [
   { id: "gyeongbuk", x: 298, y: 272, label: "경북" },
   { id: "daegu",     x: 280, y: 327, label: "대구" },
   { id: "gyeongnam", x: 275, y: 394, label: "경남" },
-  { id: "ulsan",     x: 344, y: 323, label: "울산" },
+  { id: "pohang",    x: 344, y: 293, label: "포항" },
   { id: "busan",     x: 322, y: 412, label: "부산" },
   { id: "seoul",     x: 138, y: 113, label: "서울" },
   { id: "incheon",   x: 68,  y: 133, label: "인천" },
   { id: "jeju",      x: 148, y: 508, label: "제주" },
 ];
 
-const METRO_IDS = ['seoul','incheon','sejong','daejeon','gwangju','daegu','ulsan','busan'];
+const METRO_IDS = ['seoul','incheon','sejong','daejeon','gwangju','daegu','pohang','busan'];
+
+// 데이터가 없는 지역을 칠할 중립 회색
+const MAP_EMPTY_FILL = '#3a3a3c';
 
 function MapPage() {
   const [selected, setSelected]   = useState(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [hoveredId, setHoveredId] = useState(null);
   
-  // Real database stats state (Fallbacks configured in getStatsByRegion)
-  const [mapData, setMapData]     = useState({ regions: CV_REGIONS, detail: CV_REGION_DETAIL, heatmap: CV_HEATMAP });
+  // Real database stats state — start from catalog regions with no stats (no mock),
+  // filled by getStatsByRegion. Empty stats render neutral until data loads.
+  const [mapData, setMapData]     = useState({
+    regions: CV_REGIONS.map(r => ({ ...r, topColorId: null, votes: 0 })),
+    detail: {},
+    heatmap: {},
+  });
   const [loading, setLoading]     = useState(true);
 
   useEffect(() => {
@@ -101,13 +109,14 @@ function MapPage() {
 
   const detail    = selected ? mapData.detail[selected] : null;
   const regionObj = selected ? mapData.regions.find(r => r.id === selected) : null;
+  const hasData   = mapData.regions.some(r => r.votes > 0);
 
   /* ── Shape renderer ── */
   function renderShape(shape, isMetro = false) {
     const region = mapData.regions.find(r => r.id === shape.id);
     if (!region) return null;
     const topColor = CV_getColor(region.topColorId);
-    if (!topColor) return null;
+    const fillHex = topColor ? topColor.hex : MAP_EMPTY_FILL;
     const isSel    = selected === shape.id;
     const isHov    = hoveredId === shape.id;
 
@@ -119,16 +128,16 @@ function MapPage() {
       <path
         key={shape.id}
         d={shape.d}
-        fill={topColor.hex}
+        fill={fillHex}
         fillOpacity={fillOpacity}
         stroke={strokeColor}
         strokeWidth={isSel ? 1.8 : (isHov ? 1.4 : (isMetro ? 1.2 : 0.8))}
         strokeLinejoin="round"
         style={{
           cursor: 'pointer',
-          filter: isSel
+          filter: isSel && topColor
             ? `drop-shadow(0 0 12px ${topColor.hex})`
-            : (isHov ? `drop-shadow(0 0 6px ${topColor.hex}aa)` : 'none'),
+            : (isHov && topColor ? `drop-shadow(0 0 6px ${topColor.hex}aa)` : 'none'),
           transform: isHov ? 'scale(1.01)' : 'scale(1)',
           transformOrigin: 'center',
           transition: 'fill-opacity 0.25s cubic-bezier(0.25, 0.8, 0.25, 1), stroke 0.25s ease, filter 0.25s ease, transform 0.2s ease',
@@ -156,7 +165,9 @@ function MapPage() {
           </div>
           <h1 className="typo-hero" style={{ fontWeight: 700 }}>지역별 색상</h1>
           <p className="typo-body" style={{ color: 'var(--ink-muted-48)', marginTop: 12 }}>
-            {loading ? '최신 투표 데이터를 분석 중...' : '지역을 탭하여 실시간 선두 컬러와 세부 통계를 확인해 보세요'}
+            {loading
+              ? '최신 투표 데이터를 분석 중...'
+              : (hasData ? '지역을 탭하여 실시간 선두 컬러와 세부 통계를 확인해 보세요' : '아직 투표 데이터가 없습니다')}
           </p>
         </div>
       </section>
@@ -202,7 +213,7 @@ function MapPage() {
               const r = mapData.regions.find(reg => reg.id === 'jeju');
               if (!r) return null;
               const topColor = CV_getColor(r.topColorId);
-              if (!topColor) return null;
+              const fillHex = topColor ? topColor.hex : MAP_EMPTY_FILL;
               const isSel = selected === 'jeju';
               const isHov = hoveredId === 'jeju';
               const strokeColor = isSel ? '#ffffff' : (isHov ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.08)');
@@ -210,15 +221,15 @@ function MapPage() {
               return (
                 <ellipse
                   cx={JEJU.cx} cy={JEJU.cy} rx={JEJU.rx} ry={JEJU.ry}
-                  fill={topColor.hex}
+                  fill={fillHex}
                   fillOpacity={isSel ? 0.95 : (isHov ? 0.85 : 0.55)}
                   stroke={strokeColor}
                   strokeWidth={isSel ? 1.8 : (isHov ? 1.4 : 1)}
                   style={{
                     cursor: 'pointer',
-                    filter: isSel
+                    filter: isSel && topColor
                       ? `drop-shadow(0 0 12px ${topColor.hex})`
-                      : (isHov ? `drop-shadow(0 0 6px ${topColor.hex}aa)` : 'none'),
+                      : (isHov && topColor ? `drop-shadow(0 0 6px ${topColor.hex}aa)` : 'none'),
                     transform: isHov ? 'scale(1.02)' : 'scale(1)',
                     transformOrigin: '148px 505px',
                     transition: 'fill-opacity 0.25s ease, stroke 0.25s ease, filter 0.25s ease, transform 0.2s ease',
@@ -301,6 +312,9 @@ function MapPage() {
       }}>
         {selected && detail && regionObj && (() => {
           const topColorObj = CV_getColor(regionObj.topColorId);
+          // Scale age bars to the region's own peak so a single dominant age group
+          // (sparse/skewed data) never overflows the fixed-height track.
+          const maxAgePct = Math.max(...CV_AGE_GROUPS.map(ag => detail.byAge[ag] || 0), 1);
           return (
             <div style={{ padding: '20px 24px 32px' }}>
               {/* Handle bar */}
@@ -364,6 +378,17 @@ function MapPage() {
                 >×</button>
               </div>
 
+              {detail.total === 0 ? (
+                <div style={{
+                  padding: '8px 0 24px',
+                  textAlign: 'center',
+                  color: 'var(--ink-muted-48)',
+                  fontSize: 14,
+                }}>
+                  아직 투표 데이터가 없습니다
+                </div>
+              ) : (
+                <>
               {/* Top 3 colors */}
               <div style={{ marginBottom: 32 }}>
                 <div className="typo-caption-strong" style={{
@@ -451,7 +476,7 @@ function MapPage() {
                           <div style={{
                             width: '100%',
                             minHeight: 4,
-                            height: `${Math.max(pct / 45 * 100, 8)}%`,
+                            height: `${pct > 0 ? Math.max((pct / maxAgePct) * 100, 8) : 0}%`,
                             background: winColor.hex,
                             borderRadius: '3px 3px 0 0',
                             opacity: 0.85,
@@ -472,6 +497,8 @@ function MapPage() {
                   })}
                 </div>
               </div>
+                </>
+              )}
             </div>
           );
         })()}

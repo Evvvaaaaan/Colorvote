@@ -4,8 +4,8 @@ import { getDNAStats, getSingleColorVotes } from '../lib/supabaseService';
 
 function ResultPage({ vote, color, region, onRevote }) {
   const [visible, setVisible] = useState(false);
-  const [dnaStats, setDnaStats] = useState({ pct: 15, votes: 12304 }); // Default fallback/seed matching image example
-  const [totalVotes, setTotalVotes] = useState(color ? color.votes : 0);
+  const [dnaStats, setDnaStats] = useState({ pct: 0, votes: 0 });
+  const [totalVotes, setTotalVotes] = useState(0);
   const [loadingDNA, setLoadingDNA] = useState(true);
 
   useEffect(() => {

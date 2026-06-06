@@ -46,7 +46,7 @@ export const CV_REGIONS = [
   { id:"gyeongbuk", name:"경상북도",       short:"경북",  topColorId:2,  votes:9120  },
   { id:"daegu",     name:"대구광역시",     short:"대구",  topColorId:14, votes:10540 },
   { id:"gyeongnam", name:"경상남도",       short:"경남",  topColorId:3,  votes:10240 },
-  { id:"ulsan",     name:"울산광역시",     short:"울산",  topColorId:15, votes:5820  },
+  { id:"pohang",    name:"포항시",         short:"포항",  topColorId:15, votes:5820  },
   { id:"busan",     name:"부산광역시",     short:"부산",  topColorId:21, votes:15640 },
   { id:"jeju",      name:"제주특별자치도", short:"제주",  topColorId:8,  votes:4380  },
 ];
@@ -66,7 +66,7 @@ export const CV_REGION_DETAIL = {
   gyeongbuk: { topColors:[{id:2,pct:27},{id:14,pct:18},{id:22,pct:14}], byAge:{"10대":10,"20대":22,"30대":34,"40대":24,"50대+":10}, total:9120  },
   daegu:     { topColors:[{id:14,pct:29},{id:2,pct:20},{id:22,pct:13}], byAge:{"10대":14,"20대":28,"30대":32,"40대":18,"50대+":8},  total:10540 },
   gyeongnam: { topColors:[{id:3,pct:31},{id:21,pct:19},{id:4,pct:14}],  byAge:{"10대":16,"20대":30,"30대":30,"40대":17,"50대+":7},  total:10240 },
-  ulsan:     { topColors:[{id:15,pct:28},{id:2,pct:22},{id:3,pct:18}],  byAge:{"10대":11,"20대":26,"30대":36,"40대":20,"50대+":7},  total:5820  },
+  pohang:    { topColors:[{id:15,pct:28},{id:2,pct:22},{id:3,pct:18}],  byAge:{"10대":11,"20대":26,"30대":36,"40대":20,"50대+":7},  total:5820  },
   busan:     { topColors:[{id:21,pct:33},{id:3,pct:21},{id:16,pct:16}], byAge:{"10대":18,"20대":32,"30대":28,"40대":16,"50대+":6},  total:15640 },
   jeju:      { topColors:[{id:8,pct:40},{id:5,pct:22},{id:9,pct:14}],  byAge:{"10대":20,"20대":35,"30대":25,"40대":14,"50대+":6},  total:4380  },
 };
@@ -86,7 +86,7 @@ export const CV_HEATMAP = {
   gyeongbuk: {"10대":2, "20대":2, "30대":2, "40대":22,"50대+":22 },
   daegu:     {"10대":14,"20대":14,"30대":2, "40대":22,"50대+":22 },
   gyeongnam: {"10대":3, "20대":3, "30대":3, "40대":4, "50대+":6  },
-  ulsan:     {"10대":15,"20대":3, "30대":15,"40대":2, "50대+":24 },
+  pohang:    {"10대":15,"20대":3, "30대":15,"40대":2, "50대+":24 },
   busan:     {"10대":21,"20대":21,"30대":21,"40대":3, "50대+":24 },
   jeju:      {"10대":8, "20대":8, "30대":5, "40대":9, "50대+":6  },
 };
@@ -110,7 +110,7 @@ export const CV_TICKER_MSGS = [
   "강원 50대+의 포레스트 선택률은 35%입니다",
   "충북 30대의 골든 선택률은 26%입니다",
   "전남 20대의 에메랄드 선택률은 33%입니다",
-  "울산 30대의 로즈 선택률은 28%입니다",
+  "포항 30대의 로즈 선택률은 28%입니다",
   "대전 20대의 민트 선택률은 38%입니다",
 ];
 
