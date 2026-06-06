@@ -1,12 +1,39 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CV_getColor, CV_getRegion } from '../data';
 import { getDNAStats, getSingleColorVotes } from '../lib/supabaseService';
+import { toPng } from 'html-to-image';
 
 function ResultPage({ vote, color, region, onRevote }) {
   const [visible, setVisible] = useState(false);
   const [dnaStats, setDnaStats] = useState({ pct: 0, votes: 0 });
   const [totalVotes, setTotalVotes] = useState(0);
   const [loadingDNA, setLoadingDNA] = useState(true);
+  const [sharing, setSharing] = useState(false);
+  const cardRef = useRef(null);
+
+  const handleShareImage = async () => {
+    if (!cardRef.current || sharing) return;
+    setSharing(true);
+    try {
+      // Capture at 2x ratio for Retina/High-DPI crisp quality
+      const dataUrl = await toPng(cardRef.current, {
+        pixelRatio: 2,
+        backgroundColor: '#1a1a2e',
+        style: {
+          borderRadius: '24px',
+        }
+      });
+      const link = document.createElement('a');
+      link.download = `colorvote-dna-${color.name.replace(/\s+/g, '')}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error('Failed to export image:', err);
+      alert('이미지 저장 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+    } finally {
+      setSharing(false);
+    }
+  };
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 60);
@@ -71,7 +98,7 @@ function ResultPage({ vote, color, region, onRevote }) {
       <section className="tile tile-dark" style={{ paddingTop: 120, paddingBottom: 64, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         
         {/* DNA CARD (320 × 480px, Dark Premium Style) */}
-        <div style={{
+        <div ref={cardRef} style={{
           width: '320px',
           height: '480px',
           background: '#1a1a2e',
@@ -297,8 +324,13 @@ function ResultPage({ vote, color, region, onRevote }) {
       {/* ── Tile 3: Actions (Parchment canvas) ── */}
       <section className="tile tile-parchment" style={{ paddingBottom: 80, paddingTop: 48 }}>
         <div className="tile-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-          <button className="btn-primary" style={{ width: '100%', maxWidth: 280, height: '52px', fontSize: '16px' }}>
-            공유하기
+          <button 
+            className="btn-primary" 
+            onClick={handleShareImage}
+            disabled={sharing}
+            style={{ width: '100%', maxWidth: 280, height: '52px', fontSize: '16px' }}
+          >
+            {sharing ? '사진 저장 중...' : '공유하기 (사진 저장)'}
           </button>
         </div>
       </section>
