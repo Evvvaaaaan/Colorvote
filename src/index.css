@@ -1,0 +1,507 @@
+/* ════════════════════════════════════════════
+   ColorVote — Apple Premium Dark Mode Design Tokens
+   ════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* ── Brand & Accent ── */
+  --primary: #2997ff;               /* Action Blue (Optimized for Dark) */
+  --primary-focus: #0071e3;         /* Focus Blue */
+  --primary-on-dark: #2997ff;       /* Sky Link Blue */
+
+  /* ── Surface ── */
+  --canvas: #000000;                /* Pure black background */
+  --canvas-parchment: #161617;      /* System background secondary */
+  --surface-pearl: #222224;         /* System background tertiary */
+  --tile-dark-1: #161617;
+  --tile-dark-2: #222224;
+  --tile-dark-3: #1c1c1e;
+  --surface-black: #000000;
+  --surface-chip-translucent: rgba(255, 255, 255, 0.12);
+
+  /* ── Text ── */
+  --ink: #f5f5f7;                   /* Off-white readable text */
+  --body: #f5f5f7;
+  --body-on-dark: #ffffff;
+  --body-muted: #8e8e93;            /* Apple System Gray */
+  --ink-muted-80: #e5e5ea;
+  --ink-muted-48: #8e8e93;
+
+  /* ── Hairlines ── */
+  --divider-soft: rgba(255, 255, 255, 0.04);
+  --hairline: #2c2c2e;              /* Subtle dark border */
+
+  /* ── Spacing (8px base) ── */
+  --sp-xxs: 4px;
+  --sp-xs: 8px;
+  --sp-sm: 12px;
+  --sp-md: 17px;
+  --sp-lg: 24px;
+  --sp-xl: 32px;
+  --sp-xxl: 48px;
+  --sp-section: 80px;
+
+  /* ── Border Radius ── */
+  --rounded-none: 0px;
+  --rounded-xs: 5px;
+  --rounded-sm: 8px;
+  --rounded-md: 11px;
+  --rounded-lg: 18px;
+  --rounded-pill: 9999px;
+
+  /* ── Shadows ── */
+  --product-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  --interactive-shadow: 0 8px 24px rgba(41, 151, 255, 0.25);
+
+  /* ── Font Stacks ── */
+  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+
+/* ════════════════════════════════════════════
+   Reset & Base
+   ════════════════════════════════════════════ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+  min-height: 100vh;
+  overscroll-behavior: none;
+  word-break: keep-all;
+  word-wrap: break-word;
+}
+
+#root {
+  min-height: 100vh;
+  background: var(--canvas);
+}
+
+/* ════════════════════════════════════════════
+   Typography Utilities
+   ════════════════════════════════════════════ */
+
+.typo-hero {
+  font-family: var(--font-display);
+  font-size: 56px;
+  font-weight: 600;
+  line-height: 1.07;
+  letter-spacing: -0.28px;
+  color: var(--ink);
+}
+
+.typo-display-lg {
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 600;
+  line-height: 1.10;
+  letter-spacing: 0;
+}
+
+.typo-display-md {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+}
+
+.typo-lead {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 400;
+  line-height: 1.14;
+  letter-spacing: 0.196px;
+}
+
+.typo-lead-airy {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 300;
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+
+.typo-tagline {
+  font-family: var(--font-body);
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.19;
+  letter-spacing: 0.231px;
+}
+
+.typo-body-strong {
+  font-family: var(--font-body);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.24;
+  letter-spacing: -0.374px;
+}
+
+.typo-body {
+  font-family: var(--font-body);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+}
+
+.typo-dense-link {
+  font-family: var(--font-body);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 2.41;
+  letter-spacing: 0;
+}
+
+.typo-caption {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.43;
+  letter-spacing: -0.224px;
+}
+
+.typo-caption-strong {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.29;
+  letter-spacing: -0.224px;
+}
+
+.typo-button-large {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 300;
+  line-height: 1.0;
+  letter-spacing: 0;
+}
+
+.typo-button-utility {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.29;
+  letter-spacing: -0.224px;
+}
+
+.typo-fine-print {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.0;
+  letter-spacing: -0.12px;
+}
+
+.typo-micro-legal {
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: -0.08px;
+}
+
+.typo-nav-link {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.0;
+  letter-spacing: -0.12px;
+}
+
+/* ════════════════════════════════════════════
+   Interactive & Animation Classes
+   ════════════════════════════════════════════ */
+
+.interactive-hover {
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.3s ease;
+}
+
+.interactive-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.interactive-hover:active {
+  transform: translateY(1px);
+}
+
+/* ════════════════════════════════════════════
+   Button Primitives
+   ════════════════════════════════════════════ */
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary);
+  color: #ffffff;
+  font-family: var(--font-body);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.0;
+  letter-spacing: -0.374px;
+  border: none;
+  border-radius: var(--rounded-pill);
+  padding: 14px 28px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(41, 151, 255, 0.3);
+  transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), background-color 0.2s ease, box-shadow 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #47a7ff;
+  box-shadow: 0 6px 20px rgba(41, 151, 255, 0.45);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: scale(0.97) translateY(0);
+  box-shadow: 0 2px 6px rgba(41, 151, 255, 0.2);
+}
+
+.btn-primary:focus-visible {
+  outline: 2px solid var(--primary-focus);
+  outline-offset: 2px;
+}
+
+.btn-primary:disabled {
+  background: #1c1c1e;
+  color: var(--ink-muted-48);
+  border: 1px solid var(--hairline);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.btn-secondary-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--primary);
+  font-family: var(--font-body);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.0;
+  letter-spacing: -0.374px;
+  border: 1.5px solid var(--primary);
+  border-radius: var(--rounded-pill);
+  padding: 13px 26px;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.btn-secondary-pill:hover:not(:disabled) {
+  background: rgba(41, 151, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.btn-secondary-pill:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.btn-secondary-pill:disabled {
+  border-color: var(--hairline);
+  color: var(--ink-muted-48);
+  cursor: not-allowed;
+}
+
+.btn-pearl-capsule {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-pearl);
+  color: var(--ink-muted-80);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 400;
+  border: 1px solid var(--hairline);
+  border-radius: var(--rounded-md);
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: transform 0.12s ease, background-color 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.btn-pearl-capsule:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.btn-pearl-capsule:active {
+  transform: scale(0.95);
+}
+
+.text-link {
+  color: var(--primary);
+  text-decoration: none;
+  cursor: pointer;
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.374px;
+  display: inline-flex;
+  align-items: center;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.text-link:hover {
+  color: #47a7ff;
+  transform: translateX(2px);
+}
+
+.text-link-on-dark {
+  color: var(--primary-on-dark);
+}
+
+/* ════════════════════════════════════════════
+   Tile / Section Primitives
+   ════════════════════════════════════════════ */
+
+.tile {
+  width: 100%;
+  padding: var(--sp-section) var(--sp-lg);
+  transition: background-color 0.3s ease;
+}
+
+.tile-white {
+  background: var(--canvas);
+  color: var(--ink);
+}
+
+.tile-parchment {
+  background: var(--canvas-parchment);
+  color: var(--ink);
+}
+
+.tile-dark {
+  background: var(--tile-dark-1);
+  color: var(--body-on-dark);
+}
+
+.tile-dark-2 {
+  background: var(--tile-dark-2);
+  color: var(--body-on-dark);
+}
+
+.tile-content {
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.tile-content-wide {
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+/* ════════════════════════════════════════════
+   Color Grid (Responsive, 8px rounded swatches)
+   ════════════════════════════════════════════ */
+
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+@media (min-width: 600px) {
+  .color-grid {
+    grid-template-columns: repeat(6, 1fr);
+    gap: 14px;
+  }
+}
+
+@media (min-width: 900px) {
+  .color-grid {
+    grid-template-columns: repeat(8, 1fr);
+    gap: 16px;
+  }
+}
+
+/* ════════════════════════════════════════════
+   Scrollbar & Interactive Resets
+   ════════════════════════════════════════════ */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--canvas);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--hairline);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-muted-48);
+}
+
+button {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+select option {
+  background: var(--canvas-parchment);
+  color: var(--ink);
+}
+
+@supports (padding: env(safe-area-inset-bottom)) {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* ════════════════════════════════════════════
+   Responsive Typography
+   ════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .typo-hero {
+    font-size: 34px;
+    line-height: 1.12;
+  }
+  .typo-display-lg {
+    font-size: 28px;
+  }
+  .typo-lead {
+    font-size: 21px;
+  }
+  .tile {
+    padding: var(--sp-xxl) 20px;
+  }
+}
+
+@media (max-width: 419px) {
+  .typo-hero {
+    font-size: 28px;
+  }
+  .typo-display-lg {
+    font-size: 24px;
+  }
+}

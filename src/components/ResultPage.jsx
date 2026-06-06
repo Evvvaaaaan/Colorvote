@@ -1,0 +1,324 @@
+import { useState, useEffect } from 'react';
+import { CV_getColor, CV_getRegion } from '../data';
+import { getDNAStats, getSingleColorVotes } from '../lib/supabaseService';
+
+function ResultPage({ vote, color, region, onRevote }) {
+  const [visible, setVisible] = useState(false);
+  const [dnaStats, setDnaStats] = useState({ pct: 15, votes: 12304 }); // Default fallback/seed matching image example
+  const [totalVotes, setTotalVotes] = useState(color ? color.votes : 0);
+  const [loadingDNA, setLoadingDNA] = useState(true);
+
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(true), 60);
+    return () => clearTimeout(t);
+  }, []);
+
+  // Fetch dynamic DNA stats (Region + Age segment representation)
+  useEffect(() => {
+    if (vote && region && color) {
+      setLoadingDNA(true);
+      getDNAStats(vote.regionId, vote.ageGroup, vote.colorId)
+        .then(stats => {
+          if (stats) setDnaStats(stats);
+        })
+        .finally(() => {
+          setLoadingDNA(false);
+        });
+
+      // Fetch dynamic total national votes
+      getSingleColorVotes(color.id).then(count => {
+        if (count > 0) setTotalVotes(count);
+      });
+    }
+  }, [vote, region, color]);
+
+  // Empty state
+  if (!vote || !color) {
+    return (
+      <div className="tile tile-white" style={{ paddingTop: '160px', textAlign: 'center', minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="tile-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{
+            width: 64,
+            height: 64,
+            borderRadius: '50%',
+            border: '2px dashed var(--hairline)',
+            marginBottom: 24,
+            animation: 'pulse 2s infinite ease-in-out',
+          }} />
+          <p className="typo-body" style={{ color: 'var(--ink-muted-48)', marginBottom: 20 }}>
+            아직 투표하지 않았습니다
+          </p>
+          <button
+            className="btn-primary"
+            onClick={onRevote}
+            style={{ fontWeight: 600 }}
+          >
+            투표하러 가기
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      opacity: visible ? 1 : 0,
+      transform: visible ? 'none' : 'translateY(16px)',
+      transition: 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+    }}>
+
+      {/* ── Tile 1: Hero (Dark Premium Card Representation) ── */}
+      <section className="tile tile-dark" style={{ paddingTop: 120, paddingBottom: 64, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        
+        {/* DNA CARD (320 × 480px, Dark Premium Style) */}
+        <div style={{
+          width: '320px',
+          height: '480px',
+          background: '#1a1a2e',
+          borderRadius: '24px',
+          boxShadow: '0 20px 48px rgba(0,0,0,0.6)',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          textAlign: 'left',
+          position: 'relative',
+          userSelect: 'none',
+        }}>
+          
+          {/* Top Section (260px tall) */}
+          <div style={{
+            height: '260px',
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            {/* Wordmark (Top-left corner) */}
+            <span style={{
+              position: 'absolute',
+              top: '20px',
+              left: '24px',
+              fontSize: '13px',
+              fontWeight: 300,
+              color: 'rgba(255,255,255,0.4)',
+              letterSpacing: '0.5px',
+              fontFamily: 'var(--font-display)',
+            }}>
+              colorvote
+            </span>
+
+            {/* Frosted pill badge (Top-right corner) */}
+            <div style={{
+              position: 'absolute',
+              top: '16px',
+              right: '24px',
+              background: 'rgba(255,255,255,0.12)',
+              border: '0.5px solid rgba(255,255,255,0.2)',
+              borderRadius: '999px',
+              padding: '4px 12px',
+              fontSize: '11px',
+              fontWeight: 500,
+              color: 'rgba(255,255,255,0.7)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+            }}>
+              {vote.ageGroup} · {region ? region.short : '전국'}
+            </div>
+
+            {/* Centered chosen color circle (140x140px) */}
+            <div style={{
+              width: '140px',
+              height: '140px',
+              borderRadius: '50%',
+              background: color.hex,
+            }} />
+          </div>
+
+          {/* Bottom Section (220px tall) */}
+          <div style={{
+            height: '220px',
+            padding: '20px 24px 28px',
+            display: 'flex',
+            flexDirection: 'column',
+          }}>
+            {/* Color name */}
+            <h2 style={{
+              fontSize: '22px',
+              fontWeight: 500,
+              color: '#ffffff',
+              lineHeight: 1.2,
+              marginBottom: '4px',
+            }}>
+              {color.name}
+            </h2>
+
+            {/* Hex code */}
+            <span style={{
+              fontSize: '13px',
+              color: 'rgba(255,255,255,0.35)',
+              fontFamily: 'monospace',
+              letterSpacing: '0.2px',
+            }}>
+              {color.hex}
+            </span>
+
+            {/* Gap of 20px, then a full-width divider */}
+            <div style={{ marginTop: '20px' }} />
+            <div style={{
+              height: '0.5px',
+              background: 'rgba(255,255,255,0.1)',
+              width: '100%',
+            }} />
+
+            {/* Stat columns below divider */}
+            <div style={{
+              display: 'flex',
+              flex: 1,
+              alignItems: 'center',
+              marginTop: '16px',
+            }}>
+              {/* Left Column: Personality */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <span style={{
+                  fontSize: '20px',
+                  fontWeight: 500,
+                  color: '#ffffff',
+                }}>
+                  {color.personality || '안정형'}
+                </span>
+                <span style={{
+                  fontSize: '11px',
+                  color: 'rgba(255,255,255,0.4)',
+                  fontWeight: 400,
+                }}>
+                  색 성격
+                </span>
+              </div>
+
+              {/* Vertical Divider */}
+              <div style={{
+                width: '0.5px',
+                height: '32px',
+                background: 'rgba(255,255,255,0.1)',
+                margin: '0 12px',
+              }} />
+
+              {/* Right Column: Same choice count */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <span style={{
+                  fontSize: '20px',
+                  fontWeight: 500,
+                  color: '#ffffff',
+                }}>
+                  {loadingDNA ? '...' : `${dnaStats.votes.toLocaleString()}명`}
+                </span>
+                <span style={{
+                  fontSize: '11px',
+                  color: 'rgba(255,255,255,0.4)',
+                  fontWeight: 400,
+                }}>
+                  같은 선택
+                </span>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      {/* ── Tile 2: Stats (White canvas, mapped to Dark) ── */}
+      <section className="tile tile-white" style={{ textAlign: 'center', padding: '64px 20px' }}>
+        <div className="tile-content" style={{ display: 'flex', justifyContent: 'center', gap: '24px', flexWrap: 'wrap' }}>
+          
+          {/* Cohort Segment Card (Region + Age DNA) */}
+          <div
+            className="interactive-hover"
+            style={{
+              flex: '1 1 200px',
+              maxWidth: '260px',
+              background: 'var(--canvas-parchment)',
+              border: '1px solid var(--hairline)',
+              borderRadius: 'var(--rounded-lg)',
+              padding: '24px',
+            }}
+          >
+            <p className="typo-caption-strong" style={{ color: 'var(--ink-muted-48)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '1px' }}>
+              {region ? region.short : '지역'} {vote.ageGroup} 동향
+            </p>
+            <p className="typo-lead" style={{ color: 'var(--ink)', fontWeight: 700, fontSize: '24px' }}>
+              {loadingDNA ? '분석 중...' : `${dnaStats.pct}% (${dnaStats.votes.toLocaleString()}표)`}
+            </p>
+          </div>
+
+          {/* Region Card */}
+          <div
+            className="interactive-hover"
+            style={{
+              flex: '1 1 200px',
+              maxWidth: '260px',
+              background: 'var(--canvas-parchment)',
+              border: '1px solid var(--hairline)',
+              borderRadius: 'var(--rounded-lg)',
+              padding: '24px',
+            }}
+          >
+            <p className="typo-caption-strong" style={{ color: 'var(--ink-muted-48)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '1px' }}>
+              내 지역
+            </p>
+            <p className="typo-lead" style={{ color: 'var(--ink)', fontWeight: 700 }}>
+              {region ? region.name : '—'}
+            </p>
+          </div>
+
+          {/* National Votes Card */}
+          <div
+            className="interactive-hover"
+            style={{
+              flex: '1 1 200px',
+              maxWidth: '260px',
+              background: 'var(--canvas-parchment)',
+              border: '1px solid var(--hairline)',
+              borderRadius: 'var(--rounded-lg)',
+              padding: '24px',
+            }}
+          >
+            <p className="typo-caption-strong" style={{ color: 'var(--ink-muted-48)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '1px' }}>
+              전국 투표 수
+            </p>
+            <p className="typo-lead" style={{ color: 'var(--ink)', fontWeight: 700 }}>
+              {totalVotes ? totalVotes.toLocaleString() + '표' : '—'}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Tile 3: Actions (Parchment canvas) ── */}
+      <section className="tile tile-parchment" style={{ paddingBottom: 80, paddingTop: 48 }}>
+        <div className="tile-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+          <button className="btn-primary" style={{ width: '100%', maxWidth: 280, height: '52px', fontSize: '16px' }}>
+            공유하기
+          </button>
+          <button
+            className="btn-secondary-pill"
+            onClick={onRevote}
+            style={{ width: '100%', maxWidth: 280, height: '52px', fontSize: '16px' }}
+          >
+            다시 투표하기
+          </button>
+        </div>
+      </section>
+
+      <style>{`
+        @keyframes pulse {
+          0% { transform: scale(1); opacity: 0.8; }
+          50% { transform: scale(1.05); opacity: 0.4; }
+          100% { transform: scale(1); opacity: 0.8; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+export default ResultPage;
