@@ -12,10 +12,16 @@
   -->
   <meta name="google-site-verification" content="%VITE_GOOGLE_VERIFICATION_ID%" />
 
-  <!--
-    Google Analytics 4는 환경 변수 VITE_GA_TRACKING_ID 가 설정되면
-    src/lib/analytics.js 에서 스크립트를 동적으로 로딩하여 작동합니다.
-  -->
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-P5HDZC1P1G"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    // SPA 환경에서의 중복 페이지뷰 수집 방지를 위해 send_page_view: false 옵션을 추가했습니다.
+    gtag('config', 'G-P5HDZC1P1G', { send_page_view: false });
+  </script>
 
   <!--
     Google AdSense — 승인 신청 시 아래 한 줄의 주석을 풀고
