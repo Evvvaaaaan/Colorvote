@@ -348,7 +348,8 @@ function StatsPage() {
                   <span className="typo-caption" style={{
                     color: isHov || isOpen ? 'var(--primary)' : 'var(--ink-muted-48)',
                     fontWeight: 600,
-                    width: '44px',
+                    width: '56px',
+                    whiteSpace: 'nowrap',
                     textAlign: 'right',
                     flexShrink: 0,
                     fontVariantNumeric: 'tabular-nums',
@@ -409,7 +410,8 @@ function StatsPage() {
                         <span style={{
                           fontSize: '12px',
                           color: 'var(--ink-muted-48)',
-                          width: '32px',
+                          width: '38px',
+                          whiteSpace: 'nowrap',
                           textAlign: 'right',
                           fontVariantNumeric: 'tabular-nums',
                           fontWeight: 500,
@@ -593,7 +595,8 @@ function StatsPage() {
                     <span style={{
                       fontSize: '12px',
                       color: 'var(--ink-muted-48)',
-                      width: '32px',
+                      width: '38px',
+                      whiteSpace: 'nowrap',
                       textAlign: 'right',
                       fontVariantNumeric: 'tabular-nums',
                       fontFamily: 'monospace',
