@@ -12,25 +12,6 @@ const ENG_NAMES = {
   7: 'PURPLE'
 };
 
-// Format region short name with spacing for 2-char names (e.g. "대구" → "대 구")
-function fmtRegion(short) {
-  if (short && short.length === 2) return short.split('').join(' ');
-  return short;
-}
-
-// Build a monospace progress bar from two percentages
-function makeBar(pct1, pct2) {
-  const total = pct1 + pct2;
-  const ratio = total > 0 ? pct1 / total : 0.5;
-  const blocks = Math.round(ratio * 15);
-  return '█'.repeat(blocks) + '░'.repeat(15 - blocks);
-}
-
-// Build a single-color progress bar against 100%
-function makeSurgeBar(pct) {
-  const blocks = Math.round((pct / 100) * 15);
-  return '█'.repeat(Math.min(blocks, 15)) + '░'.repeat(Math.max(15 - blocks, 0));
-}
 
 // Build a formatted insight ticker item from raw DB insight
 function formatInsight(raw) {
@@ -59,9 +40,7 @@ function formatInsight(raw) {
       id: `battle-${raw.regionId}-${raw.color1Id}-${raw.color2Id}`,
       type: 'battleground',
       style,
-      regionShort: fmtRegion(raw.regionShort),
-      regionShortRaw: raw.regionShort,
-      bar: makeBar(raw.color1Pct, raw.color2Pct),
+      regionShort: raw.regionShort,
       color1Hex: color1.hex,
       color1Eng: eng1,
       pct1: raw.color1Pct,
@@ -78,9 +57,7 @@ function formatInsight(raw) {
     return {
       id: `surge-${raw.regionId}-${raw.color1Id}`,
       type: 'surge',
-      regionShort: fmtRegion(raw.regionShort),
-      regionShortRaw: raw.regionShort,
-      bar: makeSurgeBar(raw.color1Pct),
+      regionShort: raw.regionShort,
       color1Hex: color1.hex,
       color1Eng: eng1,
       pct1: raw.color1Pct,
@@ -299,82 +276,48 @@ function Ticker({ selectedRegionId = null }) {
           fontFamily: 'var(--font-body)',
         }}>
           {currentNews.type === 'battleground' ? (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-              {currentNews.style === 'flip' ? (
-                /* ≤1% — 대표색 뒤집기 임박 */
-                <>
-                  <strong style={{ color: 'var(--ink)', fontWeight: 700 }}>{currentNews.regionShortRaw}</strong>
-                  <span style={{ color: '#ff3b30', fontWeight: 600 }}>대표색 뒤집기 임박</span>
-                  <span style={{
-                    fontFamily: 'monospace', fontSize: '12px', letterSpacing: '-0.5px',
-                    color: 'var(--ink-muted-80)', background: 'rgba(255,255,255,0.06)',
-                    padding: '2px 6px', borderRadius: '4px', border: '0.5px solid var(--hairline)',
-                  }}>[{currentNews.bar}]</span>
-                  <span style={{ color: currentNews.color1Hex, fontWeight: 700 }}>{currentNews.color1Eng} ({currentNews.pct1.toFixed(1)}%)</span>
-                  <span style={{ color: 'var(--ink-muted-48)' }}>vs</span>
-                  <span style={{ color: currentNews.color2Hex, fontWeight: 700 }}>{currentNews.color2Eng} ({currentNews.pct2.toFixed(1)}%)</span>
-                  <span style={{ color: '#ff3b30', fontWeight: 600 }}>| {currentNews.diff.toFixed(1)}% 차</span>
-                </>
-              ) : currentNews.style === 'civil' ? (
-                /* ≤3% — 내전 */
-                <>
-                  <strong style={{ color: 'var(--ink)', fontWeight: 700 }}>{currentNews.regionShortRaw} 내전:</strong>
-                  <span style={{
-                    fontFamily: 'monospace', fontSize: '12px', letterSpacing: '-0.5px',
-                    color: 'var(--ink-muted-80)', background: 'rgba(255,255,255,0.06)',
-                    padding: '2px 6px', borderRadius: '4px', border: '0.5px solid var(--hairline)',
-                  }}>[{currentNews.bar}]</span>
-                  <span style={{ color: currentNews.color1Hex, fontWeight: 700 }}>{currentNews.color1Eng} ({currentNews.pct1.toFixed(1)}%)</span>
-                  <span style={{ color: 'var(--ink-muted-48)' }}>vs</span>
-                  <span style={{ color: currentNews.color2Hex, fontWeight: 700 }}>{currentNews.color2Eng} ({currentNews.pct2.toFixed(1)}%)</span>
-                  <span style={{ color: '#ff3b30', fontWeight: 600 }}>| {currentNews.diff.toFixed(1)}% 차이로 지배색 변동 임박</span>
-                </>
-              ) : currentNews.style === 'crack' ? (
-                /* ≤5% — 내부 균열 */
-                <>
-                  <strong style={{ color: 'var(--ink)', fontWeight: 700 }}>{currentNews.regionShortRaw} 내부 균열:</strong>
-                  <span style={{
-                    fontFamily: 'monospace', fontSize: '12px', letterSpacing: '-0.5px',
-                    color: 'var(--ink-muted-80)', background: 'rgba(255,255,255,0.06)',
-                    padding: '2px 6px', borderRadius: '4px', border: '0.5px solid var(--hairline)',
-                  }}>[{currentNews.bar}]</span>
-                  <span style={{ color: currentNews.color1Hex, fontWeight: 700 }}>{currentNews.color1Eng}</span>
-                  <span style={{ color: 'var(--ink-muted-48)' }}>독주 속</span>
-                  <span style={{ color: currentNews.color2Hex, fontWeight: 700 }}>{currentNews.color2Eng}</span>
-                  <span style={{ color: '#ff3b30', fontWeight: 600 }}>추격 (격차 {currentNews.diff.toFixed(1)}%)</span>
-                </>
-              ) : (
-                /* ≤10% — 지역 내 대립 */
-                <>
-                  <span style={{ color: 'var(--ink-muted-48)' }}>지역 내 대립:</span>
-                  <strong style={{ color: 'var(--ink)', fontWeight: 700 }}>{currentNews.regionShortRaw}</strong>
-                  <span style={{
-                    fontFamily: 'monospace', fontSize: '12px', letterSpacing: '-0.5px',
-                    color: 'var(--ink-muted-80)', background: 'rgba(255,255,255,0.06)',
-                    padding: '2px 6px', borderRadius: '4px', border: '0.5px solid var(--hairline)',
-                  }}>[{currentNews.bar}]</span>
-                  <span style={{ color: currentNews.color1Hex, fontWeight: 700 }}>{currentNews.color1Eng}</span>
-                  <span style={{ color: 'var(--ink-muted-48)' }}>vs</span>
-                  <span style={{ color: currentNews.color2Hex, fontWeight: 700 }}>{currentNews.color2Eng}</span>
-                  <span style={{ color: '#ff3b30', fontWeight: 600 }}>({currentNews.diff.toFixed(1)}% 격차)</span>
-                </>
-              )}
-            </span>
+            currentNews.style === 'flip' ? (
+              <>
+                <strong style={{ color: 'var(--ink)', fontWeight: 700 }}>{currentNews.regionShort}</strong>{' '}
+                <span style={{ color: '#ff3b30', fontWeight: 600 }}>대표색 뒤집기 임박</span>{' '}
+                <span style={{ color: currentNews.color1Hex, fontWeight: 700 }}>{currentNews.color1Eng} ({currentNews.pct1.toFixed(1)}%)</span>{' '}
+                <span style={{ color: 'var(--ink-muted-48)' }}>vs</span>{' '}
+                <span style={{ color: currentNews.color2Hex, fontWeight: 700 }}>{currentNews.color2Eng} ({currentNews.pct2.toFixed(1)}%)</span>{' '}
+                <span style={{ color: '#ff3b30', fontWeight: 600 }}>| {currentNews.diff.toFixed(1)}% 차</span>
+              </>
+            ) : currentNews.style === 'civil' ? (
+              <>
+                <strong style={{ color: 'var(--ink)', fontWeight: 700 }}>{currentNews.regionShort} 내전:</strong>{' '}
+                <span style={{ color: currentNews.color1Hex, fontWeight: 700 }}>{currentNews.color1Eng} ({currentNews.pct1.toFixed(1)}%)</span>{' '}
+                <span style={{ color: 'var(--ink-muted-48)' }}>vs</span>{' '}
+                <span style={{ color: currentNews.color2Hex, fontWeight: 700 }}>{currentNews.color2Eng} ({currentNews.pct2.toFixed(1)}%)</span>{' '}
+                <span style={{ color: '#ff3b30', fontWeight: 600 }}>| {currentNews.diff.toFixed(1)}% 차이로 지배색 변동 임박</span>
+              </>
+            ) : currentNews.style === 'crack' ? (
+              <>
+                <strong style={{ color: 'var(--ink)', fontWeight: 700 }}>{currentNews.regionShort} 내부 균열:</strong>{' '}
+                <span style={{ color: currentNews.color1Hex, fontWeight: 700 }}>{currentNews.color1Eng}</span>{' '}
+                <span style={{ color: 'var(--ink-muted-48)' }}>독주 속</span>{' '}
+                <span style={{ color: currentNews.color2Hex, fontWeight: 700 }}>{currentNews.color2Eng}</span>{' '}
+                <span style={{ color: '#ff3b30', fontWeight: 600 }}>추격 (격차 {currentNews.diff.toFixed(1)}%)</span>
+              </>
+            ) : (
+              <>
+                <span style={{ color: 'var(--ink-muted-48)' }}>지역 내 대립:</span>{' '}
+                <strong style={{ color: 'var(--ink)', fontWeight: 700 }}>{currentNews.regionShort}</strong>{' '}
+                <span style={{ color: currentNews.color1Hex, fontWeight: 700 }}>{currentNews.color1Eng}</span>{' '}
+                <span style={{ color: 'var(--ink-muted-48)' }}>vs</span>{' '}
+                <span style={{ color: currentNews.color2Hex, fontWeight: 700 }}>{currentNews.color2Eng}</span>{' '}
+                <span style={{ color: '#ff3b30', fontWeight: 600 }}>({currentNews.diff.toFixed(1)}% 격차)</span>
+              </>
+            )
           ) : currentNews.type === 'surge' ? (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-              <strong style={{ color: 'var(--ink)', fontWeight: 700 }}>{currentNews.regionShortRaw}</strong>
-              <span style={{
-                fontFamily: 'monospace', fontSize: '12px', letterSpacing: '-0.5px',
-                color: 'var(--ink-muted-80)', background: 'rgba(255,255,255,0.06)',
-                padding: '2px 6px', borderRadius: '4px', border: '0.5px solid var(--hairline)',
-              }}>[{currentNews.bar}]</span>
-              <span style={{ color: currentNews.color1Hex, fontWeight: 700 }}>
-                {currentNews.color1Eng} +{currentNews.gainPct}% 급증
-              </span>
-              <span style={{ color: '#ff9500', fontWeight: 600, fontSize: '12px' }}>
-                ({currentNews.pct1.toFixed(1)}% 점유 중 · 최근 1시간 유입 급증 🔥)
-              </span>
-            </span>
+            <>
+              <strong style={{ color: 'var(--ink)', fontWeight: 700 }}>{currentNews.regionShort}</strong>{' '}
+              <span style={{ color: currentNews.color1Hex, fontWeight: 700 }}>{currentNews.color1Eng}</span>{' '}
+              <span style={{ color: '#ff9500', fontWeight: 700 }}>+{currentNews.gainPct}% 급증</span>{' '}
+              <span style={{ color: 'var(--ink-muted-48)' }}>({currentNews.pct1.toFixed(1)}% 점유 · 최근 1시간 유입 급증 🔥)</span>
+            </>
           ) : isLive ? (
             <>
               방금 <strong style={{ color: 'var(--ink)', fontWeight: 600 }}>{region?.name || '지역'}</strong>의{' '}
