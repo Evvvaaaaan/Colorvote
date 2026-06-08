@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { CV_getColor, CV_getRegion } from '../data';
-import { getDNAStats, getSingleColorVotes } from '../lib/supabaseService';
+import { getDNAStats } from '../lib/supabaseService';
 import { toPng } from 'html-to-image';
 
 function ResultPage({ vote, color, region, onRevote }) {
   const [visible, setVisible] = useState(false);
   const [dnaStats, setDnaStats] = useState({ pct: 0, votes: 0 });
-  const [totalVotes, setTotalVotes] = useState(0);
   const [loadingDNA, setLoadingDNA] = useState(true);
   const [sharing, setSharing] = useState(false);
   const [capturedImg, setCapturedImg] = useState(null);
@@ -82,11 +81,6 @@ function ResultPage({ vote, color, region, onRevote }) {
         .finally(() => {
           setLoadingDNA(false);
         });
-
-      // Fetch dynamic total national votes
-      getSingleColorVotes(color.id).then(count => {
-        if (count > 0) setTotalVotes(count);
-      });
     }
   }, [vote, region, color]);
 
@@ -271,7 +265,7 @@ function ResultPage({ vote, color, region, onRevote }) {
                   fontWeight: 500,
                   color: '#ffffff',
                 }}>
-                  {loadingDNA ? '...' : `${dnaStats.votes.toLocaleString()}명`}
+                  {loadingDNA ? '...' : `${dnaStats.pct}%`}
                 </span>
                 <span style={{
                   fontSize: '11px',
@@ -309,7 +303,7 @@ function ResultPage({ vote, color, region, onRevote }) {
               {region ? region.short : '지역'} {vote.ageGroup} 동향
             </p>
             <p className="typo-lead" style={{ color: 'var(--ink)', fontWeight: 700, fontSize: '24px' }}>
-              {loadingDNA ? '분석 중...' : `${dnaStats.pct}% (${dnaStats.votes.toLocaleString()}표)`}
+              {loadingDNA ? '분석 중...' : `${dnaStats.pct}%`}
             </p>
           </div>
 
@@ -330,26 +324,6 @@ function ResultPage({ vote, color, region, onRevote }) {
             </p>
             <p className="typo-lead" style={{ color: 'var(--ink)', fontWeight: 700 }}>
               {region ? region.name : '—'}
-            </p>
-          </div>
-
-          {/* National Votes Card */}
-          <div
-            className="interactive-hover"
-            style={{
-              flex: '1 1 200px',
-              maxWidth: '260px',
-              background: 'var(--canvas-parchment)',
-              border: '1px solid var(--hairline)',
-              borderRadius: 'var(--rounded-lg)',
-              padding: '24px',
-            }}
-          >
-            <p className="typo-caption-strong" style={{ color: 'var(--ink-muted-48)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '1px' }}>
-              전국 선택 수
-            </p>
-            <p className="typo-lead" style={{ color: 'var(--ink)', fontWeight: 700 }}>
-              {totalVotes ? totalVotes.toLocaleString() + '표' : '—'}
             </p>
           </div>
         </div>

@@ -346,7 +346,7 @@ function MapPage() {
                   <div>
                     <div className="typo-tagline" style={{ fontWeight: 700 }}>{regionObj.name}</div>
                     <div className="typo-caption" style={{ color: 'var(--ink-muted-48)', marginTop: 2 }}>
-                      총 <span style={{ color: 'var(--ink)', fontWeight: 600 }}>{detail.total.toLocaleString()}</span>표
+                      지역별 통계
                     </div>
                   </div>
                 </div>
