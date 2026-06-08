@@ -101,7 +101,7 @@ function App() {
       fontFamily: 'var(--font-body)',
     }}>
       <NavBar currentPage={page} onNavigate={navigate} hasVoted={hasVoted} />
-      <Ticker />
+      <Ticker selectedRegionId={vote?.regionId || null} />
 
       <div style={{
         opacity: transitioning ? 0 : 1,
