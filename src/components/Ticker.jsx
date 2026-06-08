@@ -170,9 +170,14 @@ function Ticker() {
     return (
       <div style={{
         width: '100%',
-        background: 'var(--canvas-parchment)',
+        background: 'rgba(22, 22, 23, 0.85)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
         borderBottom: '1px solid var(--hairline)',
         marginTop: '64px',
+        position: 'sticky',
+        top: '64px',
+        zIndex: 150,
         userSelect: 'none',
       }}>
         <div style={{
@@ -200,9 +205,14 @@ function Ticker() {
   return (
     <div style={{
       width: '100%',
-      background: 'var(--canvas-parchment)',
+      background: 'rgba(22, 22, 23, 0.85)',
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)',
       borderBottom: '1px solid var(--hairline)',
       marginTop: '64px',
+      position: 'sticky',
+      top: '64px',
+      zIndex: 150,
       userSelect: 'none',
     }}>
       <div style={{
