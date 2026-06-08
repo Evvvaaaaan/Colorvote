@@ -8,6 +8,7 @@ import MapPage from './components/MapPage';
 import StatsPage from './components/StatsPage';
 import InfoPage from './components/InfoPage';
 import AdminPage from './components/AdminPage';
+import ResultGate from './components/ResultGate';
 import Ticker from './components/Ticker';
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
@@ -109,8 +110,8 @@ function App() {
       }}>
         {page === 'vote'   && <VotePage onVote={handleVote} />}
         {page === 'result' && <ResultPage vote={vote} color={color} region={region} onRevote={handleRevote} />}
-        {page === 'map'    && <MapPage />}
-        {page === 'stats'  && <StatsPage />}
+        {page === 'map'    && <ResultGate locked={!hasVoted} onUnlock={() => navigate('vote')}><MapPage /></ResultGate>}
+        {page === 'stats'  && <ResultGate locked={!hasVoted} onUnlock={() => navigate('vote')}><StatsPage /></ResultGate>}
         {(page === 'about' || page === 'privacy' || page === 'contact') && <InfoPage page={page} onNavigate={navigate} />}
         {page === 'admin'  && <AdminPage onNavigate={navigate} />}
       </div>
