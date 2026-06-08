@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { CV_getColor, CV_getRegion } from '../data';
-import { getRecentVotes, subscribeVotes, getLegacyColorId, getBattlegroundInsights, getIpRegion } from '../lib/supabaseService';
+import { getRecentVotes, subscribeVotes, getLegacyColorId, getBattlegroundInsights } from '../lib/supabaseService';
 
 const ENG_NAMES = {
   1: 'RED',
@@ -68,18 +68,10 @@ function formatInsight(raw) {
   return null;
 }
 
-function Ticker({ selectedRegionId = null }) {
+function Ticker() {
   const [newsList, setNewsList] = useState([]);
   const [idx, setIdx] = useState(0);
   const [visible, setVisible] = useState(true);
-  const [ipRegion, setIpRegion] = useState(null);
-
-  // Resolve the visitor's region from server-side IP (used to filter battlegrounds)
-  useEffect(() => {
-    let active = true;
-    getIpRegion().then(r => { if (active) setIpRegion(r); });
-    return () => { active = false; };
-  }, []);
 
   // Load all ticker items (insights + recent votes), callable for refresh
   const loadTickerData = useCallback(async () => {
@@ -89,17 +81,8 @@ function Ticker({ selectedRegionId = null }) {
         getBattlegroundInsights()
       ]);
 
-      // 격전지는 사용자의 선택 지역 + IP 지역에 대해서만 노출 (급상승·실시간 피드는 전체).
-      // 단, 두 지역 모두 알 수 없으면 모든 격전지를 노출.
-      const allowedRegions = new Set([selectedRegionId, ipRegion].filter(Boolean));
-      const visibleInsights = allowedRegions.size === 0
-        ? rawInsights
-        : rawInsights.filter(
-            r => r.type !== 'battleground' || allowedRegions.has(r.regionId)
-          );
-
-      // Format raw insights into renderable ticker items
-      const formattedInsights = visibleInsights
+      // Format raw insights into renderable ticker items (위치 무관, 전체 노출)
+      const formattedInsights = rawInsights
         .map(formatInsight)
         .filter(Boolean);
 
@@ -127,7 +110,7 @@ function Ticker({ selectedRegionId = null }) {
     } catch (err) {
       console.error('Error loading ticker data:', err);
     }
-  }, [selectedRegionId, ipRegion]);
+  }, []);
 
   // 1. Initial load
   useEffect(() => {

@@ -76,7 +76,9 @@ const AGE_TOP5 = {
 
 // 3. Reverse map UUID to Legacy Integer ID
 export function getLegacyColorId(uuid) {
-  const entry = Object.entries(LEGACY_UUID_MAP).find(([_, u]) => u === uuid);
+  if (!uuid) return null;
+  const targetUuid = uuid.toLowerCase();
+  const entry = Object.entries(LEGACY_UUID_MAP).find(([_, u]) => u.toLowerCase() === targetUuid);
   return entry ? parseInt(entry[0], 10) : null;
 }
 
@@ -478,7 +480,7 @@ export async function getBattlegroundInsights() {
 
     const filteredStats = rawRegionStats.filter(s => {
       const legacyId = getLegacyColorId(s.color_id);
-      return legacyId >= 1 && legacyId <= 7;
+      return legacyId !== null && legacyId >= 1 && legacyId <= 7;
     });
 
     // 2. Query stats_trending for hourly momentum
@@ -492,7 +494,7 @@ export async function getBattlegroundInsights() {
     const trendingMap = {};
     trendingData.forEach(t => {
       const legacyId = getLegacyColorId(t.color_id);
-      if (legacyId >= 1 && legacyId <= 7) {
+      if (legacyId !== null && legacyId >= 1 && legacyId <= 7) {
         trendingMap[legacyId] = {
           gainPct: Math.round(parseFloat(t.gain_pct) || 0),
           hourVotes: parseInt(t.hour_votes, 10) || 0
@@ -513,21 +515,31 @@ export async function getBattlegroundInsights() {
       const region = CV_REGIONS.find(r => r.id === rid);
       if (!region) return;
 
-      const total = stats.reduce((sum, s) => sum + parseInt(s.vote_count, 10), 0);
-      if (total === 0) return;
+      const total = stats.reduce((sum, s) => {
+        const count = parseInt(s.vote_count, 10);
+        return sum + (isNaN(count) ? 0 : count);
+      }, 0);
+
+      if (total <= 0) return;
 
       // Sort by vote_count descending
-      const sorted = [...stats].sort((a, b) => parseInt(b.vote_count, 10) - parseInt(a.vote_count, 10));
+      const sorted = [...stats].sort((a, b) => {
+        const aCount = parseInt(a.vote_count, 10) || 0;
+        const bCount = parseInt(b.vote_count, 10) || 0;
+        return bCount - aCount;
+      });
       
-      const c1Count = parseInt(sorted[0].vote_count, 10);
+      const c1Count = parseInt(sorted[0].vote_count, 10) || 0;
       const c1Id = getLegacyColorId(sorted[0].color_id);
-      const c1Pct = parseFloat(((c1Count / total) * 100).toFixed(1));
+      const c1Pct = total > 0 ? parseFloat(((c1Count / total) * 100).toFixed(1)) : 0;
 
       if (sorted.length >= 2) {
-        const c2Count = parseInt(sorted[1].vote_count, 10);
+        const c2Count = parseInt(sorted[1].vote_count, 10) || 0;
         const c2Id = getLegacyColorId(sorted[1].color_id);
-        const c2Pct = parseFloat(((c2Count / total) * 100).toFixed(1));
-        const diff = parseFloat((c1Pct - c2Pct).toFixed(1));
+        const c2Pct = total > 0 ? parseFloat(((c2Count / total) * 100).toFixed(1)) : 0;
+        const diff = parseFloat(Math.abs(c1Pct - c2Pct).toFixed(1));
+
+        console.log(`[Ticker Debug] Region: ${region.short}, c1: ${c1Id} (${c1Pct}%, ${c1Count} votes), c2: ${c2Id} (${c2Pct}%, ${c2Count} votes), diff: ${diff}%, total: ${total}`);
 
         if (diff <= 10.0) {
           insights.push({
@@ -567,22 +579,6 @@ export async function getBattlegroundInsights() {
   } catch (err) {
     console.error('Error fetching battleground insights:', err);
     return [];
-  }
-}
-
-// Resolve the visitor's region from their IP via the `ip-region` Edge Function.
-// Returns a valid region id or null (not configured / non-KR / lookup failed).
-export async function getIpRegion() {
-  if (!isSupabaseConfigured) return null;
-
-  try {
-    const { data, error } = await supabase.functions.invoke('ip-region');
-    if (error) throw error;
-    const region = data?.region;
-    return CV_REGIONS.some(r => r.id === region) ? region : null;
-  } catch (err) {
-    console.error('Error resolving IP region:', err);
-    return null;
   }
 }
 
