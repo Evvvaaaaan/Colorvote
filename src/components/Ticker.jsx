@@ -1,17 +1,181 @@
 import { useState, useEffect } from 'react';
 import { CV_getColor, CV_getRegion } from '../data';
-import { getRecentVotes, subscribeVotes, getLegacyColorId } from '../lib/supabaseService';
+import { getRecentVotes, subscribeVotes, getLegacyColorId, getStatsByRegion } from '../lib/supabaseService';
+
+const ENG_NAMES = {
+  1: 'RED',
+  2: 'ORANGE',
+  3: 'YELLOW',
+  4: 'GREEN',
+  5: 'BLUE',
+  6: 'NAVY',
+  7: 'PURPLE'
+};
+
+function generateInsights(regionStats) {
+  if (!regionStats || !regionStats.detail) return [];
+
+  const insights = [];
+  const { regions, detail } = regionStats;
+
+  // 1. Generate Battlegrounds (격전지)
+  regions.forEach(r => {
+    const d = detail[r.id];
+    if (d && d.topColors && d.topColors.length >= 2) {
+      const c1 = d.topColors[0];
+      const c2 = d.topColors[1];
+      const diff = Math.abs(c1.pct - c2.pct);
+
+      if (diff <= 8.0 && d.total > 0) {
+        const color1Obj = CV_getColor(c1.id);
+        const color2Obj = CV_getColor(c2.id);
+        if (color1Obj && color2Obj) {
+          const ratio = c1.pct / (c1.pct + c2.pct);
+          const blocks = Math.round(ratio * 15);
+          const bar = '█'.repeat(blocks) + '░'.repeat(15 - blocks);
+          
+          const eng1 = ENG_NAMES[c1.id] || 'COLOR1';
+          const eng2 = ENG_NAMES[c2.id] || 'COLOR2';
+
+          let desc = '';
+          if (diff <= 1.0) {
+            desc = `(${diff.toFixed(1)}% 차이! 뒤집히기 3분 전 ⚔️)`;
+          } else if (diff <= 3.0) {
+            desc = `(${diff.toFixed(1)}% 차이! 격렬한 접전 중 ⚔️)`;
+          } else {
+            desc = `(${diff.toFixed(1)}% 차이! 선두 추격 중 ⚔️)`;
+          }
+
+          let formattedRegion = r.short;
+          if (formattedRegion.length === 2) {
+            formattedRegion = formattedRegion.split('').join(' ');
+          }
+
+          insights.push({
+            id: `insight-battle-${r.id}-${Date.now()}`,
+            type: 'battleground',
+            regionShort: formattedRegion,
+            bar,
+            color1Hex: color1Obj.hex,
+            color1Eng: eng1,
+            pct1: c1.pct,
+            color2Hex: color2Obj.hex,
+            color2Eng: eng2,
+            pct2: c2.pct,
+            desc
+          });
+        }
+      }
+    }
+  });
+
+  // 2. Generate Surging (유입 급증/폭발 중)
+  regions.forEach(r => {
+    const d = detail[r.id];
+    if (d && d.topColors && d.topColors.length >= 1) {
+      const c1 = d.topColors[0];
+      if (c1.pct >= 30.0 && d.total > 0) {
+        const color1Obj = CV_getColor(c1.id);
+        if (color1Obj) {
+          const ratio = c1.pct / 100;
+          const blocks = Math.round(ratio * 15);
+          const bar = '█'.repeat(blocks) + '░'.repeat(15 - blocks);
+          
+          const eng1 = ENG_NAMES[c1.id] || 'COLOR1';
+
+          let formattedRegion = r.short;
+          if (formattedRegion.length === 2) {
+            formattedRegion = formattedRegion.split('').join(' ');
+          }
+
+          insights.push({
+            id: `insight-surge-${r.id}-${Date.now()}`,
+            type: 'surge',
+            regionShort: formattedRegion,
+            bar,
+            color1Hex: color1Obj.hex,
+            color1Eng: eng1,
+            pct1: c1.pct,
+            desc: `(${eng1} ${c1.pct.toFixed(1)}% ▲ 폭발 중! 최근 1시간 유입 급증 🔥)`
+          });
+        }
+      }
+    }
+  });
+
+  return insights;
+}
+
+function getMockInsights() {
+  return [
+    {
+      id: 'mock-insight-1',
+      type: 'battleground',
+      regionShort: '대 구',
+      bar: '████████████░░░░░░░░░',
+      color1Hex: '#1464C0',
+      color1Eng: 'BLUE',
+      pct1: 50.1,
+      color2Hex: '#E63946',
+      color2Eng: 'RED',
+      pct2: 49.9,
+      desc: '(0.2% 차이! 뒤집히기 3분 전 ⚔️)'
+    },
+    {
+      id: 'mock-insight-2',
+      type: 'surge',
+      regionShort: '부 산',
+      bar: '████████████████░░░░░',
+      color1Hex: '#2D6A4F',
+      color1Eng: 'GREEN',
+      pct1: 61.0,
+      desc: '(GREEN 61.0% ▲ 14.2% 폭발 중! 최근 1시간 유입 급증 🔥)'
+    }
+  ];
+}
 
 function Ticker() {
   const [newsList, setNewsList] = useState([]);
   const [idx, setIdx] = useState(0);
   const [visible, setVisible] = useState(true);
 
-  // 1. Fetch initial recent votes (real data only; hidden when none)
+  // 1. Fetch initial data (recent votes + region statistics for battleground alerts)
   useEffect(() => {
-    getRecentVotes().then(dbNews => {
-      if (dbNews) setNewsList(dbNews);
-    });
+    async function loadTickerData() {
+      try {
+        const dbNews = await getRecentVotes();
+        const regionStats = await getStatsByRegion();
+        
+        let insightsList = generateInsights(regionStats);
+        if (insightsList.length === 0) {
+          insightsList = getMockInsights();
+        }
+
+        // Mix recent votes and insights
+        const mixed = [];
+        const votes = dbNews || [];
+        const maxLen = Math.max(votes.length, insightsList.length);
+        
+        for (let i = 0; i < maxLen; i++) {
+          if (i < insightsList.length) {
+            mixed.push(insightsList[i]);
+          }
+          if (i * 2 < votes.length) {
+            mixed.push(votes[i * 2]);
+          }
+          if (i * 2 + 1 < votes.length) {
+            mixed.push(votes[i * 2 + 1]);
+          }
+        }
+        
+        setNewsList(mixed);
+      } catch (err) {
+        console.error('Error loading ticker data:', err);
+        setNewsList(getMockInsights());
+      }
+    }
+    
+    loadTickerData();
   }, []);
 
   // 2. Listen to live real-time votes insertions
@@ -91,8 +255,9 @@ function Ticker() {
   // Graceful handling
   if (!currentNews) return null;
 
-  const region = CV_getRegion(currentNews.regionId);
+  const region = currentNews.regionId ? CV_getRegion(currentNews.regionId) : null;
   const isLive = currentNews.isLiveAlert;
+  const statusColor = currentNews.colorHex || currentNews.color1Hex || '#888';
 
   return (
     <div style={{
@@ -118,18 +283,18 @@ function Ticker() {
           width: '8px',
           height: '8px',
           borderRadius: '50%',
-          background: currentNews.colorHex || '#888',
-          boxShadow: `0 0 10px ${currentNews.colorHex || '#888'}`,
+          background: statusColor,
+          boxShadow: `0 0 10px ${statusColor}`,
           flexShrink: 0,
           display: 'block',
         }} />
 
-        {/* Live badge if it's a real-time incoming push */}
-        {isLive && (
+        {/* Live badge if it's a real-time incoming push, battleground, or surge */}
+        {(isLive || currentNews.type === 'battleground' || currentNews.type === 'surge') && (
           <span style={{
             fontSize: '9px',
             fontWeight: 700,
-            background: 'var(--primary)',
+            background: currentNews.type === 'battleground' ? '#ff3b30' : (currentNews.type === 'surge' ? '#ff9500' : 'var(--primary)'),
             color: '#ffffff',
             padding: '2px 6px',
             borderRadius: '4px',
@@ -138,7 +303,7 @@ function Ticker() {
             animation: 'flash 1.5s infinite',
             flexShrink: 0,
           }}>
-            속보
+            {currentNews.type === 'battleground' ? '격전' : (currentNews.type === 'surge' ? '급상승' : '속보')}
           </span>
         )}
 
@@ -152,7 +317,61 @@ function Ticker() {
           textOverflow: 'ellipsis',
           fontFamily: 'var(--font-body)',
         }}>
-          {isLive ? (
+          {currentNews.type === 'battleground' ? (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+              <strong style={{ color: '#ff3b30', fontWeight: 700 }}>[ 실시간 격전지 ⚔️ ]</strong>
+              <span style={{ color: 'var(--ink)', fontWeight: 600 }}>
+                ● {currentNews.regionShort}
+              </span>
+              <span style={{
+                fontFamily: 'monospace',
+                fontSize: '12px',
+                letterSpacing: '-0.5px',
+                color: 'var(--ink-muted-80)',
+                background: 'rgba(255,255,255,0.06)',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                border: '0.5px solid var(--hairline)',
+              }}>
+                [{currentNews.bar}]
+              </span>
+              <span style={{ color: currentNews.color1Hex, fontWeight: 700 }}>
+                {currentNews.color1Eng} {currentNews.pct1.toFixed(1)}%
+              </span>
+              <span style={{ color: 'var(--ink-muted-48)' }}>vs</span>
+              <span style={{ color: currentNews.color2Hex, fontWeight: 700 }}>
+                {currentNews.color2Eng} {currentNews.pct2.toFixed(1)}%
+              </span>
+              <span style={{ color: '#ff3b30', fontWeight: 600 }}>
+                {currentNews.desc}
+              </span>
+            </span>
+          ) : currentNews.type === 'surge' ? (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+              <strong style={{ color: '#ff9500', fontWeight: 700 }}>[ 실시간 급상승 🔥 ]</strong>
+              <span style={{ color: 'var(--ink)', fontWeight: 600 }}>
+                ● {currentNews.regionShort}
+              </span>
+              <span style={{
+                fontFamily: 'monospace',
+                fontSize: '12px',
+                letterSpacing: '-0.5px',
+                color: 'var(--ink-muted-80)',
+                background: 'rgba(255,255,255,0.06)',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                border: '0.5px solid var(--hairline)',
+              }}>
+                [{currentNews.bar}]
+              </span>
+              <span style={{ color: currentNews.color1Hex, fontWeight: 700 }}>
+                {currentNews.color1Eng} {currentNews.pct1.toFixed(1)}%
+              </span>
+              <span style={{ color: '#ff9500', fontWeight: 600 }}>
+                ▲ 폭발 중! 최근 유입 급증 ⚡
+              </span>
+            </span>
+          ) : isLive ? (
             <>
               방금 <strong style={{ color: 'var(--ink)', fontWeight: 600 }}>{region?.name || '지역'}</strong>의{' '}
               <strong style={{ color: 'var(--ink)', fontWeight: 600 }}>{currentNews.age}</strong> 참여자가{' '}
