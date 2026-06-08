@@ -394,6 +394,182 @@ export async function getSingleColorVotes(legacyColorId) {
   }
 }
 
+// Fetch battleground (close-race) and surge (momentum) insights for ticker
+export async function getBattlegroundInsights() {
+  if (!isSupabaseConfigured) {
+    // Generate insights from mock CV_REGION_DETAIL data
+    const insights = [];
+    const regionIds = Object.keys(CV_REGION_DETAIL);
+    
+    regionIds.forEach(rid => {
+      const d = CV_REGION_DETAIL[rid];
+      const region = CV_REGIONS.find(r => r.id === rid);
+      if (!d || !region || !d.topColors || d.topColors.length < 2) return;
+      
+      const c1 = d.topColors[0];
+      const c2 = d.topColors[1];
+      const diff = Math.abs(c1.pct - c2.pct);
+      
+      if (diff <= 10) {
+        const color1 = CV_COLORS.find(c => c.id === c1.id);
+        const color2 = CV_COLORS.find(c => c.id === c2.id);
+        if (color1 && color2) {
+          insights.push({
+            type: 'battleground',
+            regionId: rid,
+            regionShort: region.short,
+            color1Id: c1.id,
+            color1Pct: c1.pct,
+            color2Id: c2.id,
+            color2Pct: c2.pct,
+            diff
+          });
+        }
+      }
+    });
+
+    // Mock surge from CV_TRENDING
+    CV_TRENDING.slice(0, 2).forEach(t => {
+      const color = CV_COLORS.find(c => c.id === t.colorId);
+      if (color) {
+        // Find which region this color dominates most
+        let bestRegion = null;
+        let bestPct = 0;
+        regionIds.forEach(rid => {
+          const d = CV_REGION_DETAIL[rid];
+          if (d && d.topColors) {
+            const entry = d.topColors.find(tc => tc.id === t.colorId);
+            if (entry && entry.pct > bestPct) {
+              bestPct = entry.pct;
+              bestRegion = CV_REGIONS.find(r => r.id === rid);
+            }
+          }
+        });
+        if (bestRegion) {
+          insights.push({
+            type: 'surge',
+            regionId: bestRegion.id,
+            regionShort: bestRegion.short,
+            color1Id: t.colorId,
+            color1Pct: bestPct,
+            gainPct: t.gainPct
+          });
+        }
+      }
+    });
+
+    // Sort battlegrounds by smallest diff first (most exciting)
+    return insights.sort((a, b) => {
+      if (a.type === 'battleground' && b.type === 'battleground') return a.diff - b.diff;
+      if (a.type === 'battleground') return -1;
+      return 1;
+    }).slice(0, 6);
+  }
+
+  try {
+    // 1. Query stats_by_region for high-precision per-region color distribution
+    const { data: rawRegionStats, error: regionErr } = await supabase
+      .from('stats_by_region')
+      .select('*')
+      .order('region')
+      .order('vote_count', { ascending: false });
+
+    if (regionErr) throw regionErr;
+
+    const filteredStats = rawRegionStats.filter(s => {
+      const legacyId = getLegacyColorId(s.color_id);
+      return legacyId >= 1 && legacyId <= 7;
+    });
+
+    // 2. Query stats_trending for hourly momentum
+    const { data: trendingData, error: trendErr } = await supabase
+      .from('stats_trending')
+      .select('*')
+      .limit(7);
+
+    if (trendErr) throw trendErr;
+
+    const trendingMap = {};
+    trendingData.forEach(t => {
+      const legacyId = getLegacyColorId(t.color_id);
+      if (legacyId >= 1 && legacyId <= 7) {
+        trendingMap[legacyId] = {
+          gainPct: Math.round(parseFloat(t.gain_pct) || 0),
+          hourVotes: parseInt(t.hour_votes, 10) || 0
+        };
+      }
+    });
+
+    // 3. Build per-region breakdown with float-precision percentages
+    const insights = [];
+    const regionGroups = {};
+    
+    filteredStats.forEach(s => {
+      if (!regionGroups[s.region]) regionGroups[s.region] = [];
+      regionGroups[s.region].push(s);
+    });
+
+    Object.entries(regionGroups).forEach(([rid, stats]) => {
+      const region = CV_REGIONS.find(r => r.id === rid);
+      if (!region) return;
+
+      const total = stats.reduce((sum, s) => sum + parseInt(s.vote_count, 10), 0);
+      if (total === 0) return;
+
+      // Sort by vote_count descending
+      const sorted = [...stats].sort((a, b) => parseInt(b.vote_count, 10) - parseInt(a.vote_count, 10));
+      
+      const c1Count = parseInt(sorted[0].vote_count, 10);
+      const c1Id = getLegacyColorId(sorted[0].color_id);
+      const c1Pct = parseFloat(((c1Count / total) * 100).toFixed(1));
+
+      if (sorted.length >= 2) {
+        const c2Count = parseInt(sorted[1].vote_count, 10);
+        const c2Id = getLegacyColorId(sorted[1].color_id);
+        const c2Pct = parseFloat(((c2Count / total) * 100).toFixed(1));
+        const diff = parseFloat((c1Pct - c2Pct).toFixed(1));
+
+        if (diff <= 10.0) {
+          insights.push({
+            type: 'battleground',
+            regionId: rid,
+            regionShort: region.short,
+            color1Id: c1Id,
+            color1Pct: c1Pct,
+            color2Id: c2Id,
+            color2Pct: c2Pct,
+            diff
+          });
+        }
+      }
+
+      // Check for surge: top color has strong trending momentum
+      const trend = trendingMap[c1Id];
+      if (trend && trend.gainPct >= 20 && trend.hourVotes >= 1) {
+        insights.push({
+          type: 'surge',
+          regionId: rid,
+          regionShort: region.short,
+          color1Id: c1Id,
+          color1Pct: c1Pct,
+          gainPct: trend.gainPct
+        });
+      }
+    });
+
+    // Sort: battlegrounds by smallest diff, then surges by highest gain
+    return insights.sort((a, b) => {
+      if (a.type === 'battleground' && b.type === 'battleground') return a.diff - b.diff;
+      if (a.type === 'battleground') return -1;
+      if (b.type === 'battleground') return 1;
+      return (b.gainPct || 0) - (a.gainPct || 0);
+    }).slice(0, 6);
+  } catch (err) {
+    console.error('Error fetching battleground insights:', err);
+    return [];
+  }
+}
+
 // Fetch real-time trending colors
 export async function getTrendingColors() {
   if (!isSupabaseConfigured) return CV_TRENDING;

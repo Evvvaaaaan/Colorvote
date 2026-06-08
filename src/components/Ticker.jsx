@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { CV_getColor, CV_getRegion } from '../data';
-import { getRecentVotes, subscribeVotes, getLegacyColorId, getStatsByRegion } from '../lib/supabaseService';
+import { getRecentVotes, subscribeVotes, getLegacyColorId, getBattlegroundInsights } from '../lib/supabaseService';
 
 const ENG_NAMES = {
   1: 'RED',
@@ -12,126 +12,78 @@ const ENG_NAMES = {
   7: 'PURPLE'
 };
 
-function generateInsights(regionStats) {
-  if (!regionStats || !regionStats.detail) return [];
-
-  const insights = [];
-  const { regions, detail } = regionStats;
-
-  // 1. Generate Battlegrounds (격전지)
-  regions.forEach(r => {
-    const d = detail[r.id];
-    if (d && d.topColors && d.topColors.length >= 2) {
-      const c1 = d.topColors[0];
-      const c2 = d.topColors[1];
-      const diff = Math.abs(c1.pct - c2.pct);
-
-      if (diff <= 8.0 && d.total > 0) {
-        const color1Obj = CV_getColor(c1.id);
-        const color2Obj = CV_getColor(c2.id);
-        if (color1Obj && color2Obj) {
-          const ratio = c1.pct / (c1.pct + c2.pct);
-          const blocks = Math.round(ratio * 15);
-          const bar = '█'.repeat(blocks) + '░'.repeat(15 - blocks);
-          
-          const eng1 = ENG_NAMES[c1.id] || 'COLOR1';
-          const eng2 = ENG_NAMES[c2.id] || 'COLOR2';
-
-          let desc = '';
-          if (diff <= 1.0) {
-            desc = `(${diff.toFixed(1)}% 차이! 뒤집히기 3분 전 ⚔️)`;
-          } else if (diff <= 3.0) {
-            desc = `(${diff.toFixed(1)}% 차이! 격렬한 접전 중 ⚔️)`;
-          } else {
-            desc = `(${diff.toFixed(1)}% 차이! 선두 추격 중 ⚔️)`;
-          }
-
-          let formattedRegion = r.short;
-          if (formattedRegion.length === 2) {
-            formattedRegion = formattedRegion.split('').join(' ');
-          }
-
-          insights.push({
-            id: `insight-battle-${r.id}-${Date.now()}`,
-            type: 'battleground',
-            regionShort: formattedRegion,
-            bar,
-            color1Hex: color1Obj.hex,
-            color1Eng: eng1,
-            pct1: c1.pct,
-            color2Hex: color2Obj.hex,
-            color2Eng: eng2,
-            pct2: c2.pct,
-            desc
-          });
-        }
-      }
-    }
-  });
-
-  // 2. Generate Surging (유입 급증/폭발 중)
-  regions.forEach(r => {
-    const d = detail[r.id];
-    if (d && d.topColors && d.topColors.length >= 1) {
-      const c1 = d.topColors[0];
-      if (c1.pct >= 30.0 && d.total > 0) {
-        const color1Obj = CV_getColor(c1.id);
-        if (color1Obj) {
-          const ratio = c1.pct / 100;
-          const blocks = Math.round(ratio * 15);
-          const bar = '█'.repeat(blocks) + '░'.repeat(15 - blocks);
-          
-          const eng1 = ENG_NAMES[c1.id] || 'COLOR1';
-
-          let formattedRegion = r.short;
-          if (formattedRegion.length === 2) {
-            formattedRegion = formattedRegion.split('').join(' ');
-          }
-
-          insights.push({
-            id: `insight-surge-${r.id}-${Date.now()}`,
-            type: 'surge',
-            regionShort: formattedRegion,
-            bar,
-            color1Hex: color1Obj.hex,
-            color1Eng: eng1,
-            pct1: c1.pct,
-            desc: `(${eng1} ${c1.pct.toFixed(1)}% ▲ 폭발 중! 최근 1시간 유입 급증 🔥)`
-          });
-        }
-      }
-    }
-  });
-
-  return insights;
+// Format region short name with spacing for 2-char names (e.g. "대구" → "대 구")
+function fmtRegion(short) {
+  if (short && short.length === 2) return short.split('').join(' ');
+  return short;
 }
 
-function getMockInsights() {
-  return [
-    {
-      id: 'mock-insight-1',
-      type: 'battleground',
-      regionShort: '대 구',
-      bar: '████████████░░░░░░░░░',
-      color1Hex: '#1464C0',
-      color1Eng: 'BLUE',
-      pct1: 50.1,
-      color2Hex: '#E63946',
-      color2Eng: 'RED',
-      pct2: 49.9,
-      desc: '(0.2% 차이! 뒤집히기 3분 전 ⚔️)'
-    },
-    {
-      id: 'mock-insight-2',
-      type: 'surge',
-      regionShort: '부 산',
-      bar: '████████████████░░░░░',
-      color1Hex: '#2D6A4F',
-      color1Eng: 'GREEN',
-      pct1: 61.0,
-      desc: '(GREEN 61.0% ▲ 14.2% 폭발 중! 최근 1시간 유입 급증 🔥)'
+// Build a monospace progress bar from two percentages
+function makeBar(pct1, pct2) {
+  const total = pct1 + pct2;
+  const ratio = total > 0 ? pct1 / total : 0.5;
+  const blocks = Math.round(ratio * 15);
+  return '█'.repeat(blocks) + '░'.repeat(15 - blocks);
+}
+
+// Build a single-color progress bar against 100%
+function makeSurgeBar(pct) {
+  const blocks = Math.round((pct / 100) * 15);
+  return '█'.repeat(Math.min(blocks, 15)) + '░'.repeat(Math.max(15 - blocks, 0));
+}
+
+// Build a formatted insight ticker item from raw DB insight
+function formatInsight(raw) {
+  const color1 = CV_getColor(raw.color1Id);
+  if (!color1) return null;
+
+  if (raw.type === 'battleground') {
+    const color2 = CV_getColor(raw.color2Id);
+    if (!color2) return null;
+
+    const diff = raw.diff;
+    let desc;
+    if (diff <= 1.0) {
+      desc = `${diff.toFixed(1)}% 차이! 언제든 뒤집힐 수 있는 초접전`;
+    } else if (diff <= 3.0) {
+      desc = `${diff.toFixed(1)}% 차이! 격렬한 접전 중`;
+    } else if (diff <= 5.0) {
+      desc = `${diff.toFixed(1)}% 차이! 선두 추격 중`;
+    } else {
+      desc = `${diff.toFixed(1)}% 차이! 2위가 맹추격 중`;
     }
-  ];
+
+    return {
+      id: `battle-${raw.regionId}-${raw.color1Id}-${raw.color2Id}`,
+      type: 'battleground',
+      regionShort: fmtRegion(raw.regionShort),
+      bar: makeBar(raw.color1Pct, raw.color2Pct),
+      color1Hex: color1.hex,
+      color1Eng: ENG_NAMES[raw.color1Id] || color1.name,
+      pct1: raw.color1Pct,
+      color2Hex: color2.hex,
+      color2Eng: ENG_NAMES[raw.color2Id] || color2.name,
+      pct2: raw.color2Pct,
+      desc
+    };
+  }
+
+  if (raw.type === 'surge') {
+    const gainPct = raw.gainPct || 0;
+    return {
+      id: `surge-${raw.regionId}-${raw.color1Id}`,
+      type: 'surge',
+      regionShort: fmtRegion(raw.regionShort),
+      bar: makeSurgeBar(raw.color1Pct),
+      color1Hex: color1.hex,
+      color1Eng: ENG_NAMES[raw.color1Id] || color1.name,
+      pct1: raw.color1Pct,
+      gainPct,
+      desc: `▲ +${gainPct}% 최근 1시간 유입 급증`
+    };
+  }
+
+  return null;
 }
 
 function Ticker() {
@@ -139,46 +91,51 @@ function Ticker() {
   const [idx, setIdx] = useState(0);
   const [visible, setVisible] = useState(true);
 
-  // 1. Fetch initial data (recent votes + region statistics for battleground alerts)
-  useEffect(() => {
-    async function loadTickerData() {
-      try {
-        const dbNews = await getRecentVotes();
-        const regionStats = await getStatsByRegion();
-        
-        let insightsList = generateInsights(regionStats);
-        if (insightsList.length === 0) {
-          insightsList = getMockInsights();
-        }
+  // Load all ticker items (insights + recent votes), callable for refresh
+  const loadTickerData = useCallback(async () => {
+    try {
+      const [dbNews, rawInsights] = await Promise.all([
+        getRecentVotes(),
+        getBattlegroundInsights()
+      ]);
 
-        // Mix recent votes and insights
-        const mixed = [];
-        const votes = dbNews || [];
-        const maxLen = Math.max(votes.length, insightsList.length);
-        
-        for (let i = 0; i < maxLen; i++) {
-          if (i < insightsList.length) {
-            mixed.push(insightsList[i]);
-          }
-          if (i * 2 < votes.length) {
-            mixed.push(votes[i * 2]);
-          }
-          if (i * 2 + 1 < votes.length) {
-            mixed.push(votes[i * 2 + 1]);
-          }
+      // Format raw insights into renderable ticker items
+      const formattedInsights = rawInsights
+        .map(formatInsight)
+        .filter(Boolean);
+
+      // Interleave: insight → vote → vote → insight → vote → vote …
+      const mixed = [];
+      const votes = dbNews || [];
+      let vi = 0;
+
+      for (let i = 0; i < formattedInsights.length; i++) {
+        mixed.push(formattedInsights[i]);
+        // Add up to 2 recent vote items between each insight
+        for (let j = 0; j < 2 && vi < votes.length; j++, vi++) {
+          mixed.push(votes[vi]);
         }
-        
-        setNewsList(mixed);
-      } catch (err) {
-        console.error('Error loading ticker data:', err);
-        setNewsList(getMockInsights());
       }
+      // Append remaining votes
+      while (vi < votes.length) {
+        mixed.push(votes[vi++]);
+      }
+
+      // If no data at all, keep list empty (shows "no data" placeholder)
+      if (mixed.length > 0) {
+        setNewsList(mixed);
+      }
+    } catch (err) {
+      console.error('Error loading ticker data:', err);
     }
-    
-    loadTickerData();
   }, []);
 
-  // 2. Listen to live real-time votes insertions
+  // 1. Initial load
+  useEffect(() => {
+    loadTickerData();
+  }, [loadTickerData]);
+
+  // 2. Listen to live real-time vote insertions
   useEffect(() => {
     const unsubscribe = subscribeVotes((newVote) => {
       const legacyColorId = getLegacyColorId(newVote.color_id);
@@ -193,23 +150,24 @@ function Ticker() {
           colorId: legacyColorId,
           colorName: colorObj.name,
           colorHex: colorObj.hex,
-          isLiveAlert: true // Meta tag for styling
+          isLiveAlert: true
         };
 
         setNewsList(prev => {
-          // Prepend new live message, keeping length cap to 15 items
           const cleanedPrev = prev.filter(item => item.id !== newVote.id);
-          return [newNewsItem, ...cleanedPrev.slice(0, 14)];
+          return [newNewsItem, ...cleanedPrev.slice(0, 19)];
         });
-        
-        // Reset ticker index immediately to show the incoming live flash news
+
         setIdx(0);
         setVisible(true);
       }
+
+      // Re-fetch insights after a short delay so DB views reflect the new vote
+      setTimeout(() => loadTickerData(), 3000);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [loadTickerData]);
 
   // 3. Ticker text rotation timer
   useEffect(() => {
@@ -220,12 +178,12 @@ function Ticker() {
         setIdx(i => (i + 1) % newsList.length);
         setVisible(true);
       }, 350);
-    }, 4500);
-    
+    }, 5000);
+
     return () => clearInterval(interval);
   }, [newsList]);
 
-  // 연결됐지만 아직 선택 데이터가 없을 때
+  // Empty state
   if (newsList.length === 0) {
     return (
       <div style={{
@@ -251,8 +209,6 @@ function Ticker() {
   }
 
   const currentNews = newsList[idx];
-
-  // Graceful handling
   if (!currentNews) return null;
 
   const region = currentNews.regionId ? CV_getRegion(currentNews.regionId) : null;
@@ -264,7 +220,7 @@ function Ticker() {
       width: '100%',
       background: 'var(--canvas-parchment)',
       borderBottom: '1px solid var(--hairline)',
-      marginTop: '64px', /* Shift below 64px navbar */
+      marginTop: '64px',
       userSelect: 'none',
     }}>
       <div style={{
@@ -289,12 +245,14 @@ function Ticker() {
           display: 'block',
         }} />
 
-        {/* Live badge if it's a real-time incoming push, battleground, or surge */}
+        {/* Badge */}
         {(isLive || currentNews.type === 'battleground' || currentNews.type === 'surge') && (
           <span style={{
             fontSize: '9px',
             fontWeight: 700,
-            background: currentNews.type === 'battleground' ? '#ff3b30' : (currentNews.type === 'surge' ? '#ff9500' : 'var(--primary)'),
+            background: currentNews.type === 'battleground' ? '#ff3b30'
+              : currentNews.type === 'surge' ? '#ff9500'
+              : 'var(--primary)',
             color: '#ffffff',
             padding: '2px 6px',
             borderRadius: '4px',
@@ -303,10 +261,11 @@ function Ticker() {
             animation: 'flash 1.5s infinite',
             flexShrink: 0,
           }}>
-            {currentNews.type === 'battleground' ? '격전' : (currentNews.type === 'surge' ? '급상승' : '속보')}
+            {currentNews.type === 'battleground' ? '격전' : currentNews.type === 'surge' ? '급상승' : '속보'}
           </span>
         )}
 
+        {/* Content */}
         <span style={{
           fontSize: '13px',
           fontWeight: 400,
@@ -342,8 +301,8 @@ function Ticker() {
               <span style={{ color: currentNews.color2Hex, fontWeight: 700 }}>
                 {currentNews.color2Eng} {currentNews.pct2.toFixed(1)}%
               </span>
-              <span style={{ color: '#ff3b30', fontWeight: 600 }}>
-                {currentNews.desc}
+              <span style={{ color: '#ff3b30', fontWeight: 600, fontSize: '12px' }}>
+                ({currentNews.desc} ⚔️)
               </span>
             </span>
           ) : currentNews.type === 'surge' ? (
@@ -367,8 +326,8 @@ function Ticker() {
               <span style={{ color: currentNews.color1Hex, fontWeight: 700 }}>
                 {currentNews.color1Eng} {currentNews.pct1.toFixed(1)}%
               </span>
-              <span style={{ color: '#ff9500', fontWeight: 600 }}>
-                ▲ 폭발 중! 최근 유입 급증 ⚡
+              <span style={{ color: '#ff9500', fontWeight: 600, fontSize: '12px' }}>
+                {currentNews.desc} 🔥
               </span>
             </span>
           ) : isLive ? (
