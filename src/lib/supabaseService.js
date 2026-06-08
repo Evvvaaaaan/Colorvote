@@ -570,6 +570,22 @@ export async function getBattlegroundInsights() {
   }
 }
 
+// Resolve the visitor's region from their IP via the `ip-region` Edge Function.
+// Returns a valid region id or null (not configured / non-KR / lookup failed).
+export async function getIpRegion() {
+  if (!isSupabaseConfigured) return null;
+
+  try {
+    const { data, error } = await supabase.functions.invoke('ip-region');
+    if (error) throw error;
+    const region = data?.region;
+    return CV_REGIONS.some(r => r.id === region) ? region : null;
+  } catch (err) {
+    console.error('Error resolving IP region:', err);
+    return null;
+  }
+}
+
 // Fetch real-time trending colors
 export async function getTrendingColors() {
   if (!isSupabaseConfigured) return CV_TRENDING;

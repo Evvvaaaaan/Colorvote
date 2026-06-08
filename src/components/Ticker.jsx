@@ -112,11 +112,14 @@ function Ticker({ selectedRegionId = null }) {
         getBattlegroundInsights()
       ]);
 
-      // 격전지는 사용자의 선택 지역 + IP 지역에 대해서만 노출 (급상승·실시간 피드는 전체)
+      // 격전지는 사용자의 선택 지역 + IP 지역에 대해서만 노출 (급상승·실시간 피드는 전체).
+      // 단, 두 지역 모두 알 수 없으면 모든 격전지를 노출.
       const allowedRegions = new Set([selectedRegionId, ipRegion].filter(Boolean));
-      const visibleInsights = rawInsights.filter(
-        r => r.type !== 'battleground' || allowedRegions.has(r.regionId)
-      );
+      const visibleInsights = allowedRegions.size === 0
+        ? rawInsights
+        : rawInsights.filter(
+            r => r.type !== 'battleground' || allowedRegions.has(r.regionId)
+          );
 
       // Format raw insights into renderable ticker items
       const formattedInsights = visibleInsights
