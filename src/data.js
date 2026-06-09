@@ -96,3 +96,11 @@ export const CV_TICKER_MSGS = [
 export const CV_AGE_GROUPS = ["10대","20대","30대","40대","50대+"];
 export const CV_getColor  = (id) => CV_COLORS.find(c => c.id === id);
 export const CV_getRegion = (id) => CV_REGIONS.find(r => r.id === id);
+
+// 퍼센트 표시 헬퍼: 소수점 1자리로 반올림하되, 정수면 .0을 생략
+// 예) 49 → "49", 51.0 → "51", 33.33 → "33.3", 28.5 → "28.5"
+export const CV_fmtPct = (value) => {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '0';
+  return String(Math.round(n * 10) / 10);
+};

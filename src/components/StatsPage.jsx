@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CV_AGE_GROUPS, CV_getColor, CV_getRegion } from '../data';
+import { CV_AGE_GROUPS, CV_getColor, CV_getRegion, CV_fmtPct } from '../data';
 import { getColors, subscribeVotes, getLegacyColorId, getStatsByAgeRange, getTrendingColors, getStatsByRegion } from '../lib/supabaseService';
 
 // Which regions have notable % for a given color (sourced from live region detail)
@@ -218,7 +218,7 @@ function StatsPage() {
           {noColorData ? <NoData /> : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
             {top3.map((color, i) => {
-              const pct = totalVotes > 0 ? (color.votes / totalVotes * 100).toFixed(1) : '0.0';
+              const pct = CV_fmtPct(totalVotes > 0 ? (color.votes / totalVotes * 100) : 0);
               const isHov = hoveredRankIndex === i;
               return (
                 <div
@@ -275,7 +275,7 @@ function StatsPage() {
           </SectionTitle>
 
           {noColorData ? <NoData /> : sorted.slice(0, 16).map(color => {
-            const pct = totalVotes > 0 ? (color.votes / totalVotes * 100).toFixed(1) : '0.0';
+            const pct = CV_fmtPct(totalVotes > 0 ? (color.votes / totalVotes * 100) : 0);
             const barFill = (barsReady && maxVotes > 0) ? (color.votes / maxVotes * 100) : 0;
             const isOpen = expandedColorId === color.id;
             const regData = isOpen ? getColorRegionalData(color.id, regionDetail) : [];
@@ -416,7 +416,7 @@ function StatsPage() {
                           fontVariantNumeric: 'tabular-nums',
                           fontWeight: 500,
                           fontFamily: 'monospace',
-                        }}>{d.pct}%</span>
+                        }}>{CV_fmtPct(d.pct)}%</span>
                       </div>
                     ))}
                   </div>
@@ -514,7 +514,7 @@ function StatsPage() {
                       {topColor.name}
                     </div>
                     <div className="typo-caption" style={{ color: 'var(--ink-muted-48)' }}>
-                      {topEntry.pct}%
+                      {CV_fmtPct(topEntry.pct)}%
                     </div>
                   </button>
                 );
@@ -601,7 +601,7 @@ function StatsPage() {
                       fontVariantNumeric: 'tabular-nums',
                       fontFamily: 'monospace',
                       fontWeight: 500,
-                    }}>{entry.pct}%</span>
+                    }}>{CV_fmtPct(entry.pct)}%</span>
                   </div>
                 );
               })}

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { CV_getColor, CV_getRegion } from '../data';
+import { CV_getColor, CV_getRegion, CV_fmtPct } from '../data';
 import { getRecentVotes, subscribeVotes, getLegacyColorId, getBattlegroundInsights } from '../lib/supabaseService';
 
 const ENG_NAMES = {
@@ -273,18 +273,18 @@ function Ticker() {
               <>
                 <strong style={{ color: 'var(--ink)', fontWeight: 700 }}>{currentNews.regionShort}</strong>{' '}
                 <span style={{ color: '#ff3b30', fontWeight: 600 }}>대표색 뒤집기 임박</span>{' '}
-                <span style={{ color: currentNews.color1Hex, fontWeight: 700 }}>{currentNews.color1Eng} ({currentNews.pct1.toFixed(1)}%)</span>{' '}
+                <span style={{ color: currentNews.color1Hex, fontWeight: 700 }}>{currentNews.color1Eng} ({CV_fmtPct(currentNews.pct1)}%)</span>{' '}
                 <span style={{ color: 'var(--ink-muted-48)' }}>vs</span>{' '}
-                <span style={{ color: currentNews.color2Hex, fontWeight: 700 }}>{currentNews.color2Eng} ({currentNews.pct2.toFixed(1)}%)</span>{' '}
-                <span style={{ color: '#ff3b30', fontWeight: 600 }}>| {currentNews.diff.toFixed(1)}% 차</span>
+                <span style={{ color: currentNews.color2Hex, fontWeight: 700 }}>{currentNews.color2Eng} ({CV_fmtPct(currentNews.pct2)}%)</span>{' '}
+                <span style={{ color: '#ff3b30', fontWeight: 600 }}>| {CV_fmtPct(currentNews.diff)}% 차</span>
               </>
             ) : currentNews.style === 'civil' ? (
               <>
                 <strong style={{ color: 'var(--ink)', fontWeight: 700 }}>{currentNews.regionShort} 내전:</strong>{' '}
-                <span style={{ color: currentNews.color1Hex, fontWeight: 700 }}>{currentNews.color1Eng} ({currentNews.pct1.toFixed(1)}%)</span>{' '}
+                <span style={{ color: currentNews.color1Hex, fontWeight: 700 }}>{currentNews.color1Eng} ({CV_fmtPct(currentNews.pct1)}%)</span>{' '}
                 <span style={{ color: 'var(--ink-muted-48)' }}>vs</span>{' '}
-                <span style={{ color: currentNews.color2Hex, fontWeight: 700 }}>{currentNews.color2Eng} ({currentNews.pct2.toFixed(1)}%)</span>{' '}
-                <span style={{ color: '#ff3b30', fontWeight: 600 }}>| {currentNews.diff.toFixed(1)}% 차이로 지배색 변동 임박</span>
+                <span style={{ color: currentNews.color2Hex, fontWeight: 700 }}>{currentNews.color2Eng} ({CV_fmtPct(currentNews.pct2)}%)</span>{' '}
+                <span style={{ color: '#ff3b30', fontWeight: 600 }}>| {CV_fmtPct(currentNews.diff)}% 차이로 지배색 변동 임박</span>
               </>
             ) : currentNews.style === 'crack' ? (
               <>
@@ -292,7 +292,7 @@ function Ticker() {
                 <span style={{ color: currentNews.color1Hex, fontWeight: 700 }}>{currentNews.color1Eng}</span>{' '}
                 <span style={{ color: 'var(--ink-muted-48)' }}>독주 속</span>{' '}
                 <span style={{ color: currentNews.color2Hex, fontWeight: 700 }}>{currentNews.color2Eng}</span>{' '}
-                <span style={{ color: '#ff3b30', fontWeight: 600 }}>추격 (격차 {currentNews.diff.toFixed(1)}%)</span>
+                <span style={{ color: '#ff3b30', fontWeight: 600 }}>추격 (격차 {CV_fmtPct(currentNews.diff)}%)</span>
               </>
             ) : (
               <>
@@ -301,7 +301,7 @@ function Ticker() {
                 <span style={{ color: currentNews.color1Hex, fontWeight: 700 }}>{currentNews.color1Eng}</span>{' '}
                 <span style={{ color: 'var(--ink-muted-48)' }}>vs</span>{' '}
                 <span style={{ color: currentNews.color2Hex, fontWeight: 700 }}>{currentNews.color2Eng}</span>{' '}
-                <span style={{ color: '#ff3b30', fontWeight: 600 }}>({currentNews.diff.toFixed(1)}% 격차)</span>
+                <span style={{ color: '#ff3b30', fontWeight: 600 }}>({CV_fmtPct(currentNews.diff)}% 격차)</span>
               </>
             )
           ) : currentNews.type === 'surge' ? (
@@ -309,7 +309,7 @@ function Ticker() {
               <strong style={{ color: 'var(--ink)', fontWeight: 700 }}>{currentNews.regionShort}</strong>{' '}
               <span style={{ color: currentNews.color1Hex, fontWeight: 700 }}>{currentNews.color1Eng}</span>{' '}
               <span style={{ color: '#ff9500', fontWeight: 700 }}>+{currentNews.gainPct}% 급증</span>{' '}
-              <span style={{ color: 'var(--ink-muted-48)' }}>({currentNews.pct1.toFixed(1)}% 점유 · 최근 1시간 유입 급증 🔥)</span>
+              <span style={{ color: 'var(--ink-muted-48)' }}>({CV_fmtPct(currentNews.pct1)}% 점유 · 최근 1시간 유입 급증 🔥)</span>
             </>
           ) : isLive ? (
             <>

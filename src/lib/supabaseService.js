@@ -250,7 +250,7 @@ export async function getStatsByRegion() {
       const topColors = stats
         .map(s => ({
           id: getLegacyColorId(s.color_id),
-          pct: total > 0 ? Math.round((parseInt(s.vote_count, 10) / total) * 100) : 0
+          pct: total > 0 ? Math.round((parseInt(s.vote_count, 10) / total) * 1000) / 10 : 0
         }))
         .filter(tc => tc.id !== null)
         .slice(0, 3);
@@ -265,7 +265,7 @@ export async function getStatsByRegion() {
         const ageStats = regionCombined.filter(s => s.age_group === ag);
         const ageTotal = ageStats.reduce((acc, curr) => acc + parseInt(curr.vote_count, 10), 0);
         
-        byAge[ag] = regionAgeTotal > 0 ? Math.round((ageTotal / regionAgeTotal) * 100) : 0;
+        byAge[ag] = regionAgeTotal > 0 ? Math.round((ageTotal / regionAgeTotal) * 1000) / 10 : 0;
 
         const sortedAgeColors = [...ageStats].sort((a, b) => parseInt(b.vote_count, 10) - parseInt(a.vote_count, 10));
         const topAgeColorDb = sortedAgeColors[0];
@@ -323,7 +323,7 @@ export async function getStatsByAgeRange() {
           const p = parseFloat(s.pct);
           return {
             id: getLegacyColorId(s.color_id),
-            pct: Number.isFinite(p) ? Math.round(p) : 0
+            pct: Number.isFinite(p) ? Math.round(p * 10) / 10 : 0
           };
         })
         .filter(s => s.id !== null);
@@ -363,7 +363,7 @@ export async function getDNAStats(regionId, ageGroup, legacyColorId) {
       const pct = parseFloat(data.pct);
       const votes = parseInt(data.vote_count, 10);
       return {
-        pct: Number.isFinite(pct) ? pct : 0,
+        pct: Number.isFinite(pct) ? Math.round(pct * 10) / 10 : 0,
         votes: Number.isFinite(votes) ? votes : 0
       };
     }
@@ -538,8 +538,6 @@ export async function getBattlegroundInsights() {
         const c2Id = getLegacyColorId(sorted[1].color_id);
         const c2Pct = total > 0 ? parseFloat(((c2Count / total) * 100).toFixed(1)) : 0;
         const diff = parseFloat(Math.abs(c1Pct - c2Pct).toFixed(1));
-
-        console.log(`[Ticker Debug] Region: ${region.short}, c1: ${c1Id} (${c1Pct}%, ${c1Count} votes), c2: ${c2Id} (${c2Pct}%, ${c2Count} votes), diff: ${diff}%, total: ${total}`);
 
         if (diff <= 10.0) {
           insights.push({

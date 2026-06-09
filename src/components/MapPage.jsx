@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CV_REGIONS, CV_AGE_GROUPS, CV_getColor } from '../data';
+import { CV_REGIONS, CV_AGE_GROUPS, CV_getColor, CV_fmtPct } from '../data';
 import { getStatsByRegion } from '../lib/supabaseService';
 
 /*
@@ -427,7 +427,7 @@ function MapPage() {
                           fontSize: 14,
                           fontWeight: 700,
                           color: 'var(--ink)',
-                        }}>{tc.pct}%</span>
+                        }}>{CV_fmtPct(tc.pct)}%</span>
                       </div>
                       {/* Smooth rounded bar track */}
                       <div style={{
@@ -490,7 +490,7 @@ function MapPage() {
                           textAlign: 'center',
                           lineHeight: 1.3,
                         }}>
-                          <span style={{ color: 'var(--ink)' }}>{ag}</span><br />{pct}%
+                          <span style={{ color: 'var(--ink)' }}>{ag}</span><br />{CV_fmtPct(pct)}%
                         </div>
                       </div>
                     );

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { CV_getColor, CV_getRegion } from '../data';
+import { CV_getColor, CV_getRegion, CV_fmtPct } from '../data';
 import { getDNAStats } from '../lib/supabaseService';
 import { toPng } from 'html-to-image';
 
@@ -265,7 +265,7 @@ function ResultPage({ vote, color, region, onRevote }) {
                   fontWeight: 500,
                   color: '#ffffff',
                 }}>
-                  {loadingDNA ? '...' : `${dnaStats.pct}%`}
+                  {loadingDNA ? '...' : `${CV_fmtPct(dnaStats.pct)}%`}
                 </span>
                 <span style={{
                   fontSize: '11px',
@@ -303,7 +303,7 @@ function ResultPage({ vote, color, region, onRevote }) {
               {region ? region.short : '지역'} {vote.ageGroup} 동향
             </p>
             <p className="typo-lead" style={{ color: 'var(--ink)', fontWeight: 700, fontSize: '24px' }}>
-              {loadingDNA ? '분석 중...' : `${dnaStats.pct}%`}
+              {loadingDNA ? '분석 중...' : `${CV_fmtPct(dnaStats.pct)}%`}
             </p>
           </div>
 
